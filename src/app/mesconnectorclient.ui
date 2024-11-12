@@ -18,6 +18,30 @@
   </property>
   <layout class="QGridLayout" name="gridLayout_6">
    <item row="0" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout_7">
+     <item>
+      <spacer name="horizontalSpacer_7">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QToolButton" name="btn_settings">
+       <property name="text">
+        <string>Settings...</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidget_2">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -32,7 +56,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
@@ -46,31 +70,36 @@
            <property name="text">
             <string>IP</string>
            </property>
-           <property name="buddy">
-            <cstring>edit_IP</cstring>
-           </property>
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="edit_IP"/>
+          <widget class="QLabel" name="label_mesIP">
+           <property name="styleSheet">
+            <string notr="true">background-color: rgb(211, 211, 211);
+padding-left: 10px;
+padding-right:10px;</string>
+           </property>
+           <property name="text">
+            <string>.....</string>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QLabel" name="label_2">
            <property name="text">
             <string>Port</string>
            </property>
-           <property name="buddy">
-            <cstring>edit_port</cstring>
-           </property>
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="edit_port">
-           <property name="maximumSize">
-            <size>
-             <width>60</width>
-             <height>16777215</height>
-            </size>
+          <widget class="QLabel" name="label_mesPort">
+           <property name="styleSheet">
+            <string notr="true">background-color: rgb(211, 211, 211);
+padding-left: 10px;
+padding-right:10px;</string>
+           </property>
+           <property name="text">
+            <string>.....</string>
            </property>
           </widget>
          </item>
@@ -149,13 +178,19 @@
            <property name="text">
             <string>DataLoop API</string>
            </property>
-           <property name="buddy">
-            <cstring>edit_dataloopApi</cstring>
-           </property>
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="edit_dataloopApi"/>
+          <widget class="QLabel" name="label_dlAPI">
+           <property name="styleSheet">
+            <string notr="true">background-color: rgb(211, 211, 211);
+padding-left: 10px;
+padding-right:10px;</string>
+           </property>
+           <property name="text">
+            <string>TextLabel</string>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QPushButton" name="btn_connect_dataloop">
@@ -184,74 +219,6 @@
     </widget>
    </item>
    <item row="2" column="0">
-    <widget class="QGroupBox" name="groupBox_4">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-       <horstretch>0</horstretch>
-       <verstretch>4</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
-     <property name="title">
-      <string>System Log</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_5">
-      <item row="0" column="0">
-       <layout class="QHBoxLayout" name="horizontalLayout_6">
-        <item>
-         <spacer name="horizontalSpacer_6">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_clearLog">
-          <property name="text">
-           <string>Clear All</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_copyLog">
-          <property name="text">
-           <string>Copy to Paste</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="1" column="0">
-       <widget class="QTextEdit" name="textEdit">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>0</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -266,7 +233,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -350,6 +317,12 @@
          </item>
          <item>
           <widget class="QPushButton" name="btn_transmit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="text">
             <string>Start Transmit</string>
            </property>
@@ -396,6 +369,74 @@
        </item>
       </layout>
      </widget>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QGroupBox" name="groupBox_4">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>4</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="title">
+      <string>System Log</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_5">
+      <item row="0" column="0">
+       <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <item>
+         <spacer name="horizontalSpacer_6">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btn_clearLog">
+          <property name="text">
+           <string>Clear All</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btn_copyLog">
+          <property name="text">
+           <string>Copy to Paste</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <widget class="QTextEdit" name="clientLog">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
   </layout>

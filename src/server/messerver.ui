@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Mes Server</string>
+   <string>MES Server</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
    <item row="0" column="0">
@@ -56,6 +56,13 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_status">
+        <property name="text">
+         <string>Server is stopped...</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -104,7 +111,7 @@
        </layout>
       </item>
       <item row="1" column="0">
-       <widget class="QTextBrowser" name="textBrowser"/>
+       <widget class="QTextEdit" name="edit_systemLog"/>
       </item>
      </layout>
     </widget>
