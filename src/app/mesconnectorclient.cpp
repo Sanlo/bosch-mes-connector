@@ -60,11 +60,19 @@ void MESConnectorClient::displayError(QAbstractSocket::SocketError socketError) 
 
 void MESConnectorClient::on_btn_settings_clicked() {
     Settings settingsDlg(this);
-    settingsDlg.exec();
+
+    if(settingsDlg.exec()){
+        loadSettings();
+    } else {
+        qDebug()<<"User reject";
+
+    }
 }
 
 void MESConnectorClient::loadSettings() {
     QSettings clientSettings("MesConnector", "Client");
+
+
 
     ui->label_mesIP->setText(clientSettings.value("connection/mesIP").toString());
     ui->label_mesPort->setText(clientSettings.value("connection/mesPort").toString());

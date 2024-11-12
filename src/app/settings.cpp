@@ -17,7 +17,9 @@ Settings::~Settings()
     delete ui;
 }
 
+
 void Settings::on_btn_settingsApply_clicked() {
+
     QSettings clientSettings("MesConnector", "Client");
 
     QString theme;
@@ -49,6 +51,8 @@ void Settings::on_btn_settingsApply_clicked() {
     clientSettings.setValue("connection/mes/processNo", ui->edit_mes_processNo->text());
     clientSettings.setValue("connection/mes/processName", ui->edit_mes_processName->text());
     clientSettings.setValue("connection/mes/application", ui->edit_mes_application->text());
+
+    accept();
 }
 
 void Settings::loadSettings() {
@@ -72,7 +76,7 @@ void Settings::loadSettings() {
     ui->edit_mesPort->setText(clientSettings.value("connection/mesPort").toString());
     ui->edit_dlAPI->setText(clientSettings.value("connection/dlapi").toString());
 
-    // retrieve workstation settings    
+    // retrieve workstation settings
     ui->edit_mes_lineNo->setText(clientSettings.value("connection/mes/lineNo").toString());
     ui->edit_mes_statNo->setText(clientSettings.value("connection/mes/statNo").toString());
     ui->edit_mes_statIdx->setText(clientSettings.value("connection/mes/statIdx").toString());
@@ -86,10 +90,10 @@ void Settings::loadSettings() {
 
 void Settings::on_btn_settingsOK_clicked() {
     on_btn_settingsApply_clicked();
-    close();
+    accept();
 }
 
 void Settings::on_btn_settingsCancel_clicked() {
-    close();
+    reject();
 }
 
