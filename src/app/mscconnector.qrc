@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>img/Polyworks.ico</file>
+        <file>img/bosch.png</file>
+    </qresource>
+</RCC>
