@@ -13,6 +13,11 @@
   <property name="windowTitle">
    <string>Settings</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normalon>:/img/Polyworks.ico</normalon>
+   </iconset>
+  </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="0" column="0">
     <widget class="QToolBox" name="toolBox">
@@ -26,9 +31,17 @@
       <enum>QFrame::Shape::NoFrame</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="page_3">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>493</width>
+        <height>468</height>
+       </rect>
+      </property>
       <attribute name="label">
        <string>General</string>
       </attribute>
@@ -454,7 +467,7 @@ margin-left: 10px;</string>
 margin-left: 10px;</string>
              </property>
              <property name="text">
-              <string>Fu No.</string>
+              <string>Functional No.</string>
              </property>
              <property name="buddy">
               <cstring>edit_mes_fuNo</cstring>
@@ -553,7 +566,7 @@ margin-left: 10px;</string>
 margin-left: 10px;</string>
              </property>
              <property name="text">
-              <string>Tool Pos</string>
+              <string>Tool Position</string>
              </property>
              <property name="buddy">
               <cstring>edit_mes_toolPos</cstring>
@@ -610,7 +623,7 @@ margin-left: 10px;</string>
               <string notr="true">color: rgb(85, 0, 255);</string>
              </property>
              <property name="text">
-              <string>Work Pos</string>
+              <string>Working Position</string>
              </property>
              <property name="buddy">
               <cstring>edit_mes_workPos</cstring>

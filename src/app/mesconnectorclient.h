@@ -28,11 +28,16 @@ private slots:
     void on_btn_settings_clicked();
     void on_btn_connect_mes_clicked();
 
+    void on_btn_validate_clicked();
+
 private:
     Ui::MESConnectorClient *ui;
 
     void loadSettings();
     void updateSystemLog(const QString & msg);
+
+    QString pathPartReceived;
+    QString pathPartProcessed;
 
     QTcpSocket *tcpSocket = nullptr;
     QDataStream in;

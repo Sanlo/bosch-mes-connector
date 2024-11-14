@@ -8,17 +8,26 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network
 
 set(TS_FILES MesConnector_zh_CN.ts)
 
-set(PROJECT_SOURCES
-    main.cpp
-    mesconnectorclient.cpp
-    mesconnectorclient.h
-    settings.cpp
-    settings.h
-    settings.ui
-    mesconnectorclient.ui
-    ${TS_FILES})
+# set(PROJECT_SOURCES main.cpp mesconnectorclient.cpp mesconnectorclient.h
+# settings.cpp settings.h settings.ui mesconnectorclient.ui xopconwriter.h
+# xopconwriter.cpp ${TS_FILES})
 
-qt_add_executable(MesConnector MANUAL_FINALIZATION ${PROJECT_SOURCES})
+qt_add_executable(
+  MesConnector
+  MANUAL_FINALIZATION
+  ${TS_FILES}
+  main.cpp
+  mesconnectorclient.cpp
+  mesconnectorclient.h
+  settings.cpp
+  settings.h
+  settings.ui
+  mesconnectorclient.ui
+  xopconwriter.h
+  xopconwriter.cpp
+  xopconreader.h
+  xopconreader.cpp
+  mscconnector.qrc)
 qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
 target_link_libraries(MesConnector PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
