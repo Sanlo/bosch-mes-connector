@@ -19,19 +19,31 @@ MesServer::~MesServer()
 }
 
 void MesServer::sendReply() {
+
+    // QFile file("C:/Users/sanlozhang/Documents/GitHub/boschData/partRecevied/Response_10.179.90.149_46635c0a-fabe-4bc4-a0ca-0184bd1496f5_IO.xml");
+    QFile file("C:/Users/sanlozhang/Documents/GitHub/boschData/partProcessed/Response_10.179.90.149_b19ce799-9499-4704-90cd-d1622aec227e_IO.xml");
+
+    file.open(QIODevice::ReadOnly);
+
     QByteArray block;
     QDataStream out(&block, QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_6_8);
+    out << (quint64)0;
+    out<< file.readAll();
+    out.device()->seek(0);
+    out << (quint64)(block.size()) - sizeof(quint64);
 
-    out<< tr("Server reply: 1112");
-    updateSystemLog(tr("A client connected"));
+    // wireshark: 986, debug: 978, 0x03D2
+    qDebug() << "Server file size" << (quint64)(block.size()) - sizeof(quint64);
 
     QTcpSocket *clientConnection= tcpServer->nextPendingConnection();
 
     connect(clientConnection, &QAbstractSocket::disconnected, clientConnection, &QObject::deleteLater);
 
     clientConnection->write(block);
+    clientConnection->waitForBytesWritten();
     clientConnection->disconnectFromHost();
+
+    updateSystemLog(tr("A client connected"));
 }
 
 void MesServer::on_btn_clear_serverLog_clicked() {
