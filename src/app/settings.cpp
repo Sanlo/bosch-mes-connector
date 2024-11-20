@@ -1,6 +1,11 @@
+#include "settings.h"
+
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QNetworkReply>
 #include <QtCore>
 
-#include "settings.h"
+#include "dataloop.h"
 #include "ui_settings.h"
 
 Settings::Settings(QWidget *parent)
@@ -17,21 +22,18 @@ Settings::~Settings()
     delete ui;
 }
 
-
-void Settings::on_btn_settingsApply_clicked() {
+void Settings::on_btn_settingsApply_clicked()
+{
+    QString theme;
+    if (ui->radio_light->isChecked()) {
+        theme = tr("light");
+    }
+    if (ui->radio_dark->isChecked())
+        theme = tr("dark");
+    if (ui->radio_auto->isChecked())
+        theme = tr("auto");
 
     QSettings clientSettings("MesConnector", "Client");
-
-    QString theme;
-
-    if(ui->radio_light->isChecked()){
-        theme=tr("light");
-    }
-    if(ui->radio_dark->isChecked())
-        theme=tr("dark");
-    if(ui->radio_auto->isChecked())
-        theme=tr("auto");
-
     // general settings
     clientSettings.setValue("general/theme", theme);
     clientSettings.setValue("general/language", ui->combo_language->currentIndex());
@@ -40,6 +42,7 @@ void Settings::on_btn_settingsApply_clicked() {
     clientSettings.setValue("connection/mesIP", ui->edit_mesIP->text());
     clientSettings.setValue("connection/mesPort", ui->edit_mesPort->text());
     clientSettings.setValue("connection/dlapi", ui->edit_dlAPI->text());
+    clientSettings.setValue("connection/dlToken", ui->edit_dlToken->text());
 
     // workstation infomation
     clientSettings.setValue("connection/mes/lineNo", ui->edit_mes_lineNo->text());
@@ -55,26 +58,30 @@ void Settings::on_btn_settingsApply_clicked() {
     accept();
 }
 
-void Settings::loadSettings() {
+void Settings::loadSettings()
+{
     QSettings clientSettings("MesConnector", "Client");
 
     // retrieve general settings
     QString theme = clientSettings.value("general/theme").toString();
-    if(theme == tr("light")){
+    if (theme == tr("light")) {
         ui->radio_light->setChecked(true);
     }
-    if(theme == tr("dark")){
+    if (theme == tr("dark")) {
         ui->radio_dark->setChecked(true);
     }
-    if(theme == tr("auto")){
+    if (theme == tr("auto")) {
         ui->radio_auto->setChecked(true);
     }
     ui->combo_language->setCurrentIndex(clientSettings.value("general/language").toInt());
+    ui->edit_path_recevied->setText(clientSettings.value("general/pathReceived").toString());
+    ui->edit_path_processed->setText(clientSettings.value("general/pathProcessed").toString());
 
     // retrieve connection settings
     ui->edit_mesIP->setText(clientSettings.value("connection/mesIP").toString());
     ui->edit_mesPort->setText(clientSettings.value("connection/mesPort").toString());
     ui->edit_dlAPI->setText(clientSettings.value("connection/dlapi").toString());
+    ui->edit_dlToken->setText(clientSettings.value("connection/dlToken").toString());
 
     // retrieve workstation settings
     ui->edit_mes_lineNo->setText(clientSettings.value("connection/mes/lineNo").toString());
@@ -88,12 +95,67 @@ void Settings::loadSettings() {
     ui->edit_mes_application->setText(clientSettings.value("connection/mes/application").toString());
 }
 
-void Settings::on_btn_settingsOK_clicked() {
+void Settings::on_btn_settingsOK_clicked()
+{
     on_btn_settingsApply_clicked();
     accept();
 }
 
-void Settings::on_btn_settingsCancel_clicked() {
-    reject();
+void Settings::on_toolBtn_received_clicked()
+{
+    QString dir = QFileDialog::getExistingDirectory(this,
+                                                    tr("Select Folder for Part Recevied"),
+                                                    QDir::currentPath(),
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+    if (dir.isEmpty())
+        return;
+
+    qDebug() << dir;
+
+    ui->edit_path_recevied->setText(dir);
+
+    QSettings clientSettings("MesConnector", "Client");
+    clientSettings.setValue("general/pathReceived", dir);
+}
+
+void Settings::on_toolBtn_prcessed_clicked()
+{
+    QString dir = QFileDialog::getExistingDirectory(this,
+                                                    tr("Select Folder for Part Processed"),
+                                                    QDir::currentPath(),
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+    if (dir.isEmpty())
+        return;
+
+    qDebug() << dir;
+
+    ui->edit_path_processed->setText(dir);
+
+    QSettings clientSettings("MesConnector", "Client");
+    clientSettings.setValue("general/pathProcessed", dir);
+}
+
+void Settings::on_btn_testDL_clicked()
+{
+    if (ui->edit_dlAPI->text().isEmpty() || ui->edit_dlToken->text().isEmpty()) {
+        QMessageBox::warning(this,
+                             QString("MES Connector Settings"),
+                             QString("DataLoop API entry or token don't setup correctly!"));
+        return;
+    }
+
+    DataLoop *dataloop = new DataLoop(this, ui->edit_dlAPI->text(), ui->edit_dlToken->text());
+
+    QNetworkReply *reply = dataloop->testConnection();
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (200 == reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)) {
+            QPixmap pixmap(":/img/check_green.svg");
+            // pixmap.scaled(QSize(48, 48));
+            ui->label_dlStatus->setPixmap(pixmap);
+            ui->label_dlStatus->setScaledContents(true);
+        }
+    });
 }
 

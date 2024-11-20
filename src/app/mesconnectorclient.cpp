@@ -1,10 +1,15 @@
-#include <QtCore>
-#include <QtWidgets>
+#include "mesconnectorclient.h"
+
+#include <QNetworkAccessManager>
 #include <QNetworkProxy>
+#include <QNetworkReply>
+#include <QtCore>
 #include <QtLogging>
+#include <QtWidgets>
 
 #include "./ui_mesconnectorclient.h"
-#include "mesconnectorclient.h"
+#include "dataloop.h"
+#include "polyworks.h"
 #include "settings.h"
 #include "xopconreader.h"
 #include "xopconwriter.h"
@@ -15,150 +20,440 @@ MESConnectorClient::MESConnectorClient(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::MESConnectorClient)
     , tcpSocket(new QTcpSocket(this))
+    , networkManager(new QNetworkAccessManager(this))
+
 {
+    // init client
     ui->setupUi(this);
     loadSettings();
-
-    QPixmap bosch(":/img/bosch.png");
+    QPixmap bosch(":/img/Bosch-logo.svg");
     ui->link_bosch->setScaledContents(true);
+    ui->link_bosch->setAutoFillBackground(true);
     ui->link_bosch->setPixmap(bosch);
+    ui->label_status_messerver->setText("Mes Server is Disconnected.");
+    ui->btn_connect_mes->setEnabled(true);
+    ui->btn_disconnect_mes->setDisabled(true);
+    ui->btn_validate->setDisabled(true);
+    ui->label_mesIP->setText(mesIP);
+    ui->label_mesPort->setText(QString::number(mesPort));
+    ui->label_dlAPI->setText(dataloopEntry);
+    ui->tab_connection->setCurrentIndex(0);
+    ui->tab_inspection->setCurrentIndex(0);
+    ui->label_status_partvalidation->setText(tr("Waiting for user input.\nPlease scan part ID with BAR scanner"));
+    updateSystemLog(tr("Client started!"));
 
-    pathPartReceived = "C:/Users/sanlozhang/Documents/GitHub/boschData/partRecevied";
-    pathPartProcessed = "C:/Users/sanlozhang/Documents/GitHub/boschData/partProcessed";
-
-
-    // No Proxy should be used for Tcp Socket
+    // setup socket to MES server
     tcpSocket->setProxy(QNetworkProxy::NoProxy);
-
-    connect(tcpSocket, &QAbstractSocket::readyRead, this, &MESConnectorClient::readPartRecevied);
+    connect(tcpSocket, &QAbstractSocket::readyRead, this, &MESConnectorClient::onServerReply);
     connect(tcpSocket, &QAbstractSocket::errorOccurred, this, &MESConnectorClient::displayError);
-
-    in.setDevice(tcpSocket);
-    in.setVersion(QDataStream::Qt_6_8);
-
-    updateSystemLog(tr("client started!"));
+    connect(tcpSocket, &QAbstractSocket::disconnected, this, [&] {
+        ui->btn_connect_mes->setEnabled(true);
+        ui->btn_disconnect_mes->setDisabled(true);
+        ui->label_status_messerver->setText(tr("Mes Server is Disconnected."));
+        updateSystemLog(QString("Client is disconnected from MES server (IP:%1, Port:%2).")
+                            .arg(tcpSocket->peerAddress().toString())
+                            .arg(tcpSocket->peerPort()));
+    });
+    // setup signal/slot of DataLoop API
+    connect(networkManager, &QNetworkAccessManager::finished, this, &MESConnectorClient::onDataloopReply);
 }
 
 MESConnectorClient::~MESConnectorClient()
 {
     delete ui;
+    if (polyworks)
+        delete polyworks;
 }
 
-void MESConnectorClient::requestPartRecevied() {}
+void MESConnectorClient::onServerReply()
+{
+#if 1
+    // 3. recevie XML response file stream from mes server
+    QByteArray buffer;
+    quint32 bufferSize = 0;
+    QDataStream in(tcpSocket);
+    in.setVersion(QDataStream::Qt_6_8);
 
-void MESConnectorClient::readPartRecevied() {
     in.startTransaction();
-
-    qint64 blockSize = 0;
-
-    if(blockSize == 0) {
-        if(tcpSocket->bytesAvailable() < (int)sizeof(quint16))
-            return;
-        in >> blockSize;
-    }
-
-    if(tcpSocket->bytesAvailable() < blockSize)
+    in >> bufferSize;
+    qDebug() << tcpSocket->bytesAvailable() << bufferSize;
+    if (tcpSocket->bytesAvailable() < bufferSize) {
+        qDebug() << tcpSocket->bytesAvailable();
+        updateSystemLog("Data size ERROR!");
         return;
-
-    qDebug() << blockSize;
-
-    QByteArray serverReply;
-    in >> serverReply;
-
-    pathPartReceived.append("/ServerReply_Test.xml");
-    QFile file(pathPartReceived);
-    file.open(QIODevice::WriteOnly);
-    file.write(serverReply);
-    file.close();
-
-
-    if(!in.commitTransaction()) {
+    }
+    in >> buffer;
+    if (!in.commitTransaction()) {
         updateSystemLog("Data transaction error occured!");
         return;
     }
 
-    updateSystemLog("Server reply.");
+    QFile file(QString("%1/Response_%2_%3_IO.xml")
+                   .arg(partStatus == MESConnectorClient::PartRecevied ? pathPartReceived : pathPartProcessed)
+                   .arg(tcpSocket->peerAddress().toString())
+                   .arg(currentUuid));
+    if (!file.open(QFile::ReadWrite)) {
+        QMessageBox::warning(this,
+                             tr("MES Connector Client"),
+                             tr("Cannot read file %1: %2")
+                                 .arg(QDir::toNativeSeparators(pathPartReceived), file.errorString()));
+        return;
+    }
+    file.write(buffer);
+    file.seek(0);
+
+    // 4. parse and retrieve data from respone file
+    XopconReader xopconReader;
+    if (!xopconReader.read(&file)) {
+        QMessageBox::warning(this,
+                             tr("MES Connector Client"),
+                             tr("Parse error in file %1:\n\n%2")
+                                 .arg(QDir::toNativeSeparators(pathPartReceived), xopconReader.errorString()));
+    }
+
+    partIndentifier = xopconReader.partIdentifier();
+    processNo = xopconReader.processNo();
+    typeNo = xopconReader.typeNo();
+
+    file.close();
+    // 5. respond to the result
+    updateSystemLog(QString("server reply: partForStation: %1, typeNo: %2.")
+                        .arg(xopconReader.partForStation(), xopconReader.typeNo()));
+#endif
 }
 
-void MESConnectorClient::displayError(QAbstractSocket::SocketError socketError) {
+void MESConnectorClient::onDataloopReply()
+{
+    QNetworkReply *reply = reinterpret_cast<QNetworkReply *>(sender());
+    QJsonDocument json = QJsonDocument::fromJson(reply->readAll());
+    QJsonArray controlArray = json.object()["value"].toArray();
+    QStringList objNames, controlNames;
+    QList<double> measuredList;
+    for (const QJsonValueRef obj : controlArray) {
+        if (obj.toObject()["type"].toString() == "Distance") {
+            qDebug().noquote() << obj.toObject()["controls"].toArray()[0].toObject()["objectName"].toString()
+                               << obj.toObject()["controls"].toArray()[0].toObject()["name"].toString()
+                               << obj.toObject()["controls"].toArray()[0].toObject()["measured"].toDouble();
+            objNames << obj.toObject()["controls"].toArray()[0].toObject()["objectName"].toString();
+            controlNames << obj.toObject()["controls"].toArray()[0].toObject()["name"].toString();
+            measuredList << obj.toObject()["controls"].toArray()[0].toObject()["measured"].toDouble();
+        }
+    }
+#if 1
+    const QString fileName = QString("%1/Request_%2_%3.xml")
+                                 .arg(pathPartProcessed, tcpSocket->peerAddress().toString(), currentUuid);
+    QFile file(fileName);
+    if (!file.open(QFile::ReadWrite | QFile::Text)) {
+        QMessageBox::warning(this,
+                             tr("MES Connector Client"),
+                             tr("Cannot write file %1:\n%2").arg(QDir::toNativeSeparators(fileName), file.errorString()));
+        return;
+    }
 
+    XopconWriter writer(partIndentifier, XopconWriter::PartProcessed);
+    writer.setMeasureData(objNames, controlNames, measuredList);
+    // set xml location info
+    QSettings clientSettings("MesConnector", "Client");
+    writer.setLineNo(clientSettings.value("connection/mes/lineNo").toString());
+    writer.setStatNo(clientSettings.value("connection/mes/statNo").toString());
+    writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
+    writer.setFuNo(clientSettings.value("connection/mes/fuNo").toString());
+    writer.setWorkPos(clientSettings.value("connection/mes/workPos").toString());
+    writer.setToolPos(clientSettings.value("connection/mes/toolPos").toString());
+    writer.setProcessNo(clientSettings.value("connection/mes/processNo").toString());
+    writer.setProcessName(clientSettings.value("connection/mes/processName").toString());
+    writer.setApplication(clientSettings.value("connection/mes/application").toString());
+
+    writer.writeXmlData(&file);
+
+    file.seek(0);
+    sendFile(&file);
+
+    // update UI
+    updateSystemLog(QString("Measurement data has been send to MES server, part identifier is %1").arg(partIndentifier));
+#endif
+}
+
+void MESConnectorClient::displayError(QAbstractSocket::SocketError socketError)
+{
     switch (socketError) {
     case QAbstractSocket::RemoteHostClosedError:
         break;
     case QAbstractSocket::HostNotFoundError:
-        QMessageBox::information(this, tr("MES Connector Client"), tr("The connection is refused by the peer"
-                                                                      "Make sure the server is running, and check the ip and port settings"));
+        QMessageBox::information(
+            this,
+            tr("MES Connector Client"),
+            tr(
+                "The connection is refused by the peer" "Make sure the server is running, and " "che" "ck " "the ip " "and " "por" "t " "settings"));
         break;
     default:
-        QMessageBox::information(this, tr("MES Connector Client"), tr("The following error occurred: %1").arg(tcpSocket->errorString()));
+        QMessageBox::information(this,
+                                 tr("MES Connector Client"),
+                                 tr("The following error occurred: %1").arg(tcpSocket->errorString()));
     }
-
 }
 
 void MESConnectorClient::on_btn_settings_clicked() {
     Settings settingsDlg(this);
+    settingsDlg.setWindowModality(Qt::WindowModal);
 
-    if(settingsDlg.exec()){
+    if (settingsDlg.exec()) {
         loadSettings();
     } else {
-        qDebug()<<"User reject";
-
+        qDebug() << "User reject";
     }
 }
 
 void MESConnectorClient::loadSettings() {
     QSettings clientSettings("MesConnector", "Client");
 
-    ui->label_mesIP->setText(clientSettings.value("connection/mesIP").toString());
-    ui->label_mesPort->setText(clientSettings.value("connection/mesPort").toString());
-    ui->label_dlAPI->setText(clientSettings.value("connection/dlapi").toString());
+    mesIP = clientSettings.value("connection/mesIP").toString();
+    ui->label_mesIP->setText(mesIP);
+    mesPort = clientSettings.value("connection/mesPort").toUInt();
+    ui->label_mesPort->setText(QString::number(mesPort));
+    dataloopEntry = clientSettings.value("connection/dlapi").toString();
+    dataloopToken = clientSettings.value("connection/dlToken").toString();
+
+    pathPartReceived = clientSettings.value("general/pathReceived").toString();
+    pathPartProcessed = clientSettings.value("general/pathProcessed").toString();
 }
 
-void MESConnectorClient::updateSystemLog(const QString &msg) {
-    if(!msg.isEmpty()) {
-        ui->clientLog->append(tr("%1: %2")
-                                  .arg(QDateTime::currentDateTime().toString(tr("yyyy-MM-dd-hh:mm:ss.z")), msg));
+void MESConnectorClient::sendMessage(QAnyStringView msg) {
+    qDebug() << tcpSocket->state();
+    qDebug() << tcpSocket->isOpen();
+    qDebug() << tcpSocket->peerAddress().toString();
+    qDebug() << msg;
+
+    // check if socket available
+    if (!tcpSocket) {
+        QMessageBox::warning(this, tr("MES Connector Client"), tr("Server not connected!"));
+        updateSystemLog("ERROR: Please connect to MES server first!");
+        return;
+    }
+
+    if (!tcpSocket->isOpen()) {
+        QMessageBox::warning(this, tr("MES Connector Client"), tr("Socket Error!"));
+        updateSystemLog("ERROR: Please reconnect to MES server first!");
+        return;
+    }
+
+    qDebug() << "Start transaction";
+
+    QString id = ui->edit_partID->text();
+    QDataStream out(tcpSocket);
+    out.setVersion(QDataStream::Qt_6_8);
+
+    QByteArray header;
+    header.prepend(QString("fileType:message, fileSize:%1").arg(id.size()).toUtf8());
+    header.resize(128);
+
+    QByteArray byteArr = id.toUtf8();
+    byteArr.prepend(header);
+
+    out << byteArr;
+
+    updateSystemLog("Send Data to server");
+    ui->edit_partID->setText("");
+    ui->btn_validate->setDisabled(true);
+}
+
+bool MESConnectorClient::sendFile(QIODevice *file)
+{
+    // check if socket available
+    if (!tcpSocket) {
+        QMessageBox::warning(this, tr("MES Connector Client"), tr("Server has't been connected!"));
+        return false;
+    }
+
+    if (!tcpSocket->isOpen()) {
+        QMessageBox::warning(this, QString("MES Connector Client"), QString("Please reconnect to MES server first!"));
+        return false;
+    }
+
+    // QFile file(filePath);
+    if ((!file->isOpen()) && file->open(QFile::ReadOnly)) {
+        return false;
+    }
+
+    QDataStream out(tcpSocket);
+    out.setVersion(QDataStream::Qt_6_8);
+
+    qDebug() << "Current byte order of stream is "
+             << (out.byteOrder() == QDataStream::BigEndian ? "BigEndian" : "LittleEndian");
+
+    // add the message size(4 Bytes) to stream as socket header
+    out << (quint32) (file->size() - sizeof(qint32));
+    // add the message body to stream
+    out << file->readAll();
+
+    file->close();
+
+    return true;
+}
+
+void MESConnectorClient::updateSystemLog(const QString &msg)
+{
+    if (!msg.isEmpty()) {
+        ui->clientLog->append(
+            tr("%1 %2").arg(QDateTime::currentDateTime().toString(tr("yyyy-MM-dd hh:mm:ss")), -40, QChar('-')).arg(msg));
     }
 }
 
 void MESConnectorClient::on_btn_connect_mes_clicked() {
-
     tcpSocket->abort();
-    tcpSocket->connectToHost(ui->label_mesIP->text(),ui->label_mesPort->text().toInt());
+    tcpSocket->connectToHost(ui->label_mesIP->text(), ui->label_mesPort->text().toInt());
 
+    if (tcpSocket->waitForConnected()) {
+        ui->label_status_messerver->setText(tr("Mes Server is Connected."));
+        ui->btn_connect_mes->setDisabled(true);
+        ui->btn_disconnect_mes->setEnabled(true);
+        updateSystemLog(QString("Successful connect to MES server %1:%2")
+                            .arg(tcpSocket->peerAddress().toString())
+                            .arg(tcpSocket->peerPort()));
+    }
+}
+
+void MESConnectorClient::on_btn_disconnect_mes_clicked() {
+    if (tcpSocket->isOpen()) {
+        tcpSocket->close();
+        ui->label_status_messerver->setText("Mes Server is Disconnected.");
+        ui->btn_connect_mes->setEnabled(true);
+        ui->btn_disconnect_mes->setDisabled(true);
+        updateSystemLog(tr("Diconnected with MES server."));
+    }
 }
 
 void MESConnectorClient::on_btn_validate_clicked() {
 
+    // 1. generate XML request file with part id and system info
+    partStatus = MESConnectorClient::PartRecevied;
+    partIndentifier = ui->edit_partID->text();
+    currentUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
-    //===========================TEST XopconWriter================================
-    const QString fileName = pathPartReceived + "/ServerRequest_Test.xml";
-    QFile fileRequest(fileName);
-    if(!fileRequest.open(QFile::WriteOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("MES Connector Client"), tr("Cannot write file %1:\n%2").arg(QDir::toNativeSeparators(fileName), fileRequest.errorString()));
+    const QString fileName = QString("%1/Request_%2_%3.xml")
+                                 .arg(pathPartReceived, tcpSocket->peerAddress().toString(), currentUuid);
+    qDebug() << fileName;
+    QFile file(fileName);
+    if (!file.open(QFile::ReadWrite | QFile::Text)) {
+        QMessageBox::warning(this,
+                             tr("MES Connector Client"),
+                             tr("Cannot write file %1:\n%2").arg(QDir::toNativeSeparators(fileName), file.errorString()));
         return;
     }
 
-    XopconWriter writer;
-    if(writer.writeXmlData(&fileRequest)) {
+    XopconWriter writer(partIndentifier, XopconWriter::PartRecevied);
+    QSettings clientSettings("MesConnector", "Client");
+    writer.setLineNo(clientSettings.value("connection/mes/lineNo").toString());
+    writer.setStatNo(clientSettings.value("connection/mes/statNo").toString());
+    writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
+    writer.setFuNo(clientSettings.value("connection/mes/fuNo").toString());
+    writer.setWorkPos(clientSettings.value("connection/mes/workPos").toString());
+    writer.setToolPos(clientSettings.value("connection/mes/toolPos").toString());
+    writer.setProcessNo(clientSettings.value("connection/mes/processNo").toString());
+    writer.setProcessName(clientSettings.value("connection/mes/processName").toString());
+    writer.setApplication(clientSettings.value("connection/mes/application").toString());
+
+    if (writer.writeXmlData(&file)) {
         updateSystemLog(QObject::tr("XML file is writed!"));
     }
 
-    //===========================TEST XopconReader================================
-    XopconReader xopconReader;
-
-    qDebug() << pathPartReceived;
-
-    QFile file(pathPartReceived + "/ServerReply_Test.xml" );
-    if(!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr("MES Connector Client"), tr("Cannot read file %1: %2")
-                                 .arg(QDir::toNativeSeparators(pathPartReceived), file.errorString()));
+    // 2. send request file to mes server
+    file.seek(0);
+    if (!sendFile(&file)) {
+        updateSystemLog("Cannot build communications with MES server");
         return;
     }
 
-    if(!xopconReader.read(&file)) {
-        QMessageBox::warning(this, tr("MES Connector Client"), tr("Parse error in file %1:\n\n%2").arg(QDir::toNativeSeparators(pathPartReceived), xopconReader.errorString()));
+    // udpate UI
+    updateSystemLog("Send XML request to MES server");
+    updateSystemLog(tr("PartID = %1, start validate and start PolyWorks").arg(partIndentifier));
+
+    ui->label_status_partvalidation->setText(tr("ID:%1 is recevied").arg(partIndentifier));
+    ui->edit_partID->setText("");
+    ui->btn_validate->setDisabled(true);
+
+    updateGeometry();
+
+    on_btn_startInspect_clicked();
+}
+
+void MESConnectorClient::on_edit_partID_textChanged(const QString &arg1)
+{
+    if (arg1.length() > 5) {
+        ui->btn_validate->setEnabled(true);
+    } else {
+        ui->btn_validate->setDisabled(true);
+    }
+}
+
+void MESConnectorClient::on_btn_startInspect_clicked()
+{
+    QString argVar = QString("%1 %2").arg(processNo).arg(typeNo);
+    QString macropath
+        = "C:/Users/sanlozhang/Documents/GitHub/bosch-mes-connector/src/app/mscl/FindInspectTemplate.pwmacro";
+    polyworks = new PolyWorks();
+    polyworks->scriptExecute(PolyWorks::MODULE_WORKSPACE,
+                             macropath.toStdWString().c_str(),
+                             argVar.toStdWString().c_str());
+
+    qDebug() << argVar;
+}
+
+void MESConnectorClient::on_btn_transmit_clicked()
+{
+    loadSettings();
+
+    if (dataloopEntry.isEmpty() || dataloopToken.isEmpty()) {
+        QMessageBox::warning(this,
+                             QString("MES Connector Client"),
+                             QString("DataLoop entry or token don't setup correctly!"));
+        return;
     }
 
+    if (!dataloop)
+        dataloop = new DataLoop(this, dataloopEntry, dataloopToken);
+
+    partIndentifier = ui->combo_partList->currentText();
+    QNetworkReply *reply = dataloop->reqMeasureObjectByPieceID(ui->combo_partList->currentData().toString());
+    connect(reply, &QNetworkReply::finished, this, &MESConnectorClient::onDataloopReply);
+}
+
+void MESConnectorClient::on_tab_inspection_currentChanged(int index)
+{
+    if (1 == index) {
+        if (!dataloop)
+            dataloop = new DataLoop(this, dataloopEntry, dataloopToken);
+
+        QSettings clientSettings("MesConnector", "Client");
+
+        QNetworkReply *reply = dataloop->reqPieceIDs(clientSettings.value("connection/mes/statNo").toString());
+        connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+            QByteArray data = reply->readAll();
+            QJsonDocument json = QJsonDocument::fromJson(data);
+            if (json.isEmpty() || json.isNull())
+                return;
+
+            QJsonArray jsonArray = json.object()["value"].toArray()[0].toObject()["inspectorPieces"].toArray();
+            for (const QJsonValueRef item : jsonArray) {
+                ui->combo_partList->addItem(item.toObject()["name"].toString(), item.toObject()["id"].toString());
+            }
+        });
+    }
+}
+
+void MESConnectorClient::on_tab_connection_currentChanged(int index)
+{
+    if (1 == index) {
+        if (!dataloop)
+            dataloop = new DataLoop(this, dataloopEntry, dataloopToken);
+
+        QNetworkReply *reply = dataloop->testConnection();
+        connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+            QString dataloopConnection = 200 == reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)
+                                             ? "Connected"
+                                             : "Disconnected";
+            ui->label_status_dataloop->setText(dataloopConnection);
+        });
+    }
 }
 

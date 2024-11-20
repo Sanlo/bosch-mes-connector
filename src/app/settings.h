@@ -7,26 +7,29 @@ namespace Ui {
 class Settings;
 }
 
-class Settings : public QDialog
-{
-    Q_OBJECT
+class Settings : public QDialog {
+  Q_OBJECT
 
-public:
-    explicit Settings(QWidget *parent = nullptr);
-    ~Settings();
+ public:
+  explicit Settings(QWidget *parent = nullptr);
+  ~Settings();
 
-private slots:
+ private slots:
 
-    void on_btn_settingsApply_clicked();
+  void on_btn_settingsApply_clicked();
 
-    void on_btn_settingsOK_clicked();
+  void on_btn_settingsOK_clicked();
 
-    void on_btn_settingsCancel_clicked();
+  void on_toolBtn_received_clicked();
 
-private:
-    Ui::Settings *ui;
+  void on_toolBtn_prcessed_clicked();
 
-    void loadSettings();
+  void on_btn_testDL_clicked();
+
+  private:
+  Ui::Settings *ui;
+
+  void loadSettings();
 };
 
-#endif // SETTINGS_H
+#endif  // SETTINGS_H

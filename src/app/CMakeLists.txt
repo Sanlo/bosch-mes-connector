@@ -6,6 +6,9 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network
                                                        LinguistTools)
 
+include_directories(
+  "C:/Program Files/InnovMetric/PolyWorks MS 2023/goodies/PolyWorksSDK/include")
+
 set(TS_FILES MesConnector_zh_CN.ts)
 
 # set(PROJECT_SOURCES main.cpp mesconnectorclient.cpp mesconnectorclient.h
@@ -27,7 +30,9 @@ qt_add_executable(
   xopconwriter.cpp
   xopconreader.h
   xopconreader.cpp
-  mscconnector.qrc)
+  mscconnector.qrc
+  polyworks.h polyworks.cpp
+  dataloop.h dataloop.cpp)
 qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
 target_link_libraries(MesConnector PRIVATE Qt${QT_VERSION_MAJOR}::Widgets

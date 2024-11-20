@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>750</width>
-    <height>600</height>
+    <width>600</width>
+    <height>620</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -107,7 +107,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
        <property name="maximumSize">
         <size>
          <width>80</width>
-         <height>30</height>
+         <height>20</height>
         </size>
        </property>
        <property name="text">
@@ -141,7 +141,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
     </layout>
    </item>
    <item row="2" column="0">
-    <widget class="QTabWidget" name="tabWidget">
+    <widget class="QTabWidget" name="tab_inspection">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
        <horstretch>0</horstretch>
@@ -155,7 +155,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
       </size>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -185,6 +185,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="btn_startInspect">
+           <property name="text">
+            <string>Start Inspect</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Orientation::Horizontal</enum>
@@ -200,18 +207,20 @@ li.checked::marker { content: &quot;\2612&quot;; }
         </layout>
        </item>
        <item row="1" column="0">
-        <widget class="QTextBrowser" name="textBrowser">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
+        <widget class="QLabel" name="label_status_partvalidation">
+         <property name="minimumSize">
           <size>
-           <width>16777215</width>
-           <height>50</height>
+           <width>0</width>
+           <height>40</height>
           </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(211, 211, 211);
+padding-left: 10px;
+padding-right:10px;</string>
+         </property>
+         <property name="text">
+          <string>TextLabel</string>
          </property>
         </widget>
        </item>
@@ -235,7 +244,20 @@ li.checked::marker { content: &quot;\2612&quot;; }
           </widget>
          </item>
          <item>
-          <widget class="QComboBox" name="combo_partList"/>
+          <widget class="QComboBox" name="combo_partList">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>30</height>
+            </size>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QPushButton" name="btn_transmit">
@@ -294,7 +316,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
     </widget>
    </item>
    <item row="1" column="0">
-    <widget class="QTabWidget" name="tabWidget_2">
+    <widget class="QTabWidget" name="tab_connection">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
        <horstretch>0</horstretch>
@@ -308,13 +330,31 @@ li.checked::marker { content: &quot;\2612&quot;; }
       </size>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
        <string>MES Connection</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout">
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_status_messerver">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(211, 211, 211);
+padding-left: 10px;
+padding-right:10px;</string>
+         </property>
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
@@ -384,22 +424,6 @@ padding-right:10px;</string>
          </item>
         </layout>
        </item>
-       <item row="1" column="0">
-        <widget class="QTextBrowser" name="textDisplay_mes">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>50</height>
-          </size>
-         </property>
-        </widget>
-       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="tab_4">
@@ -408,18 +432,20 @@ padding-right:10px;</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
        <item row="1" column="0">
-        <widget class="QTextBrowser" name="textDisplay_dataloop">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
+        <widget class="QLabel" name="label_status_dataloop">
+         <property name="minimumSize">
           <size>
-           <width>16777215</width>
-           <height>50</height>
+           <width>0</width>
+           <height>40</height>
           </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(211, 211, 211);
+padding-left: 10px;
+padding-right:10px;</string>
+         </property>
+         <property name="text">
+          <string>TextLabel</string>
          </property>
         </widget>
        </item>
@@ -473,5 +499,22 @@ padding-right:10px;</string>
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>edit_partID</sender>
+   <signal>returnPressed()</signal>
+   <receiver>btn_validate</receiver>
+   <slot>click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>326</x>
+     <y>267</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>393</x>
+     <y>264</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
