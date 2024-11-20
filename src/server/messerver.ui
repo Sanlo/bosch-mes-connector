@@ -13,6 +13,14 @@
   <property name="windowTitle">
    <string>MES Server</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normalon>:/img/boschLogo3.png</normalon>
+   </iconset>
+  </property>
+  <property name="windowOpacity">
+   <double>0.950000000000000</double>
+  </property>
   <layout class="QGridLayout" name="gridLayout_3">
    <item row="0" column="0">
     <widget class="QGroupBox" name="groupBox">
@@ -33,7 +41,11 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="edit_serverPort"/>
+         <widget class="QLineEdit" name="edit_serverPort">
+          <property name="text">
+           <string>13333</string>
+          </property>
+         </widget>
         </item>
         <item>
          <spacer name="horizontalSpacer">
