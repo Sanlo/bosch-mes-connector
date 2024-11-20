@@ -1,0 +1,70 @@
+version "6.0"
+#=======================================================
+# ---- InnovMetric Software Inc.
+# ---- Module  :    Workspace Manager
+# ---- Version :    2023 IR11.2 (build 5602)
+# ---- Date    :    Sunday, November 17, 2024 - 16:25:06
+#-------------------------------------------------------
+############################### POLYWORKS #################################
+#
+# ---- InnovMetric Software Inc.
+# ---- Module  :    Workspace Manager
+# ---- Version :    2023 IR11.3
+# ---- Date    :    Nov 17, 24
+#
+############################### DISCLAIMER ################################
+#
+# This macro script is provided "AS IS", and may contain bugs, errors, and 
+# other problems that could cause system or other failures and data loss. 
+# InnovMetric Software Inc. disclaims any warranty or liability obligations 
+# of any kind to the user of this macro.
+#
+############################### DESCRIPTION ###############################
+#
+#
+#
+################################ REVISION #################################
+#
+#
+#
+############################### PARAMETERS ################################
+# [1][Input][string] project name (Possible Values: 620, 680)
+DECLARE inspectorName_ $1
+
+# [2][Input][string] inspector template name (Possible Values: A, B)
+DECLARE inspectorTemplate_ $2
+
+# [3][Output][String] Description (Possible Values:)
+DECLARE returnString_
+
+
+################################ SUBMACROS ################################
+############################# LOCAL VARIABLES #############################
+DECLARE dlInspectorProjectId
+DECLARE dlInspectorProjectName
+DECLARE dlObjectType
+DECLARE dlWorkspaceId
+
+DECLARE inspectorID
+############################# SHARED VARIABLES ############################
+################################## CODE ###################################
+
+IF NOT HAS_VALUE ( inspectorName_ )
+    SET inspectorName_ "620"
+ENDIF
+if NOT HAS_VALUE ( inspectorTemplate_ )
+    SET inspectorTemplate_ "B"
+ENDIF
+
+DATALOOP LOG_IN ( "sanlo", "Datal00p" )
+
+DATALOOP SEARCH ( "Inspector project", $inspectorName_, dlInspectorProjectId, "Exact Match")
+
+DATALOOP OBJECT INFO GET ( $dlInspectorProjectId, dlInspectorProjectName, dlObjectType, dlWorkspaceId )
+
+DATALOOP WORKSPACE OPEN ( $dlWorkspaceId )
+
+MODULE POLYWORKS_INSPECTOR START USING_OBJECTS ( , $dlInspectorProjectName, inspectorID, "On", "Full" )
+
+MACRO EXEC REMOTE_COMMAND ( "PIECE TEMPLATE OPEN", $inspectorID, $inspectorTemplate_  )
+
