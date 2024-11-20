@@ -34,8 +34,8 @@ DECLARE inspectorName_ $1
 # [2][Input][string] inspector template name (Possible Values: A, B)
 DECLARE inspectorTemplate_ $2
 
-# [3][Output][String] Description (Possible Values:)
-DECLARE returnString_
+# [3][Input][String] Description (Possible Values:)
+DECLARE partIdetifier_ $3
 
 
 ################################ SUBMACROS ################################
@@ -66,5 +66,7 @@ DATALOOP WORKSPACE OPEN ( $dlWorkspaceId )
 
 MODULE POLYWORKS_INSPECTOR START USING_OBJECTS ( , $dlInspectorProjectName, inspectorID, "On", "Full" )
 
-MACRO EXEC REMOTE_COMMAND ( "PIECE TEMPLATE OPEN", $inspectorID, $inspectorTemplate_  )
+#MACRO EXEC REMOTE_COMMAND ( "PIECE TEMPLATE OPEN", $inspectorID, $inspectorTemplate_  )
+
+MACRO EXEC REMOTE_COMMAND ( "PIECE NEW", $inspectorID, $partIdetifier_, $inspectorTemplate_  )
 

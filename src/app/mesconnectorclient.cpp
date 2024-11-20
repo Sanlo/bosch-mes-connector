@@ -111,11 +111,13 @@ void MESConnectorClient::onServerReply()
                                  .arg(QDir::toNativeSeparators(pathPartReceived), xopconReader.errorString()));
     }
 
-    partIndentifier = xopconReader.partIdentifier();
+    // partIndentifier = xopconReader.partIdentifier();
     processNo = xopconReader.processNo();
     typeNo = xopconReader.typeNo();
 
     file.close();
+    on_btn_startInspect_clicked();
+
     // 5. respond to the result
     updateSystemLog(QString("server reply: partForStation: %1, typeNo: %2.")
                         .arg(xopconReader.partForStation(), xopconReader.typeNo()));
@@ -373,8 +375,6 @@ void MESConnectorClient::on_btn_validate_clicked() {
     ui->btn_validate->setDisabled(true);
 
     updateGeometry();
-
-    on_btn_startInspect_clicked();
 }
 
 void MESConnectorClient::on_edit_partID_textChanged(const QString &arg1)
@@ -388,7 +388,7 @@ void MESConnectorClient::on_edit_partID_textChanged(const QString &arg1)
 
 void MESConnectorClient::on_btn_startInspect_clicked()
 {
-    QString argVar = QString("%1 %2").arg(processNo).arg(typeNo);
+    QString argVar = QString("%1 %2 %3").arg(processNo, typeNo, partIndentifier);
     QString macropath
         = "C:/Users/sanlozhang/Documents/GitHub/bosch-mes-connector/src/app/mscl/FindInspectTemplate.pwmacro";
     polyworks = new PolyWorks();
@@ -414,6 +414,7 @@ void MESConnectorClient::on_btn_transmit_clicked()
         dataloop = new DataLoop(this, dataloopEntry, dataloopToken);
 
     partIndentifier = ui->combo_partList->currentText();
+    partStatus = MESConnectorClient::PartProcessed;
     QNetworkReply *reply = dataloop->reqMeasureObjectByPieceID(ui->combo_partList->currentData().toString());
     connect(reply, &QNetworkReply::finished, this, &MESConnectorClient::onDataloopReply);
 }
@@ -426,7 +427,7 @@ void MESConnectorClient::on_tab_inspection_currentChanged(int index)
 
         QSettings clientSettings("MesConnector", "Client");
 
-        QNetworkReply *reply = dataloop->reqPieceIDs(clientSettings.value("connection/mes/statNo").toString());
+        QNetworkReply *reply = dataloop->reqPieceIDs(clientSettings.value("connection/mes/processNo").toString());
         connect(reply, &QNetworkReply::finished, this, [this, reply]() {
             QByteArray data = reply->readAll();
             QJsonDocument json = QJsonDocument::fromJson(data);
