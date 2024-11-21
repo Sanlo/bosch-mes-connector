@@ -89,7 +89,7 @@ void MESConnectorClient::onServerReply()
     }
 
     QFile file(QString("%1/Response_%2_%3_IO.xml")
-                   .arg(partStatus == MESConnectorClient::PartRecevied ? pathPartReceived : pathPartProcessed)
+                   .arg(MESConnectorClient::PartRecevied == partStatus ? pathPartReceived : pathPartProcessed)
                    .arg(tcpSocket->peerAddress().toString())
                    .arg(currentUuid));
     if (!file.open(QFile::ReadWrite)) {
@@ -116,7 +116,9 @@ void MESConnectorClient::onServerReply()
     typeNo = xopconReader.typeNo();
 
     file.close();
-    on_btn_startInspect_clicked();
+
+    if (MESConnectorClient::PartRecevied == partStatus)
+        on_btn_startInspect_clicked();
 
     // 5. respond to the result
     updateSystemLog(QString("server reply: partForStation: %1, typeNo: %2.")
