@@ -8,7 +8,17 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network
 
 set(TS_FILES MesSever_zh_CN.ts)
 
-set(PROJECT_SOURCES main.cpp messerver.cpp messerver.h messerver.ui ${TS_FILES})
+set(PROJECT_SOURCES
+    main.cpp
+    messerver.cpp
+    messerver.h
+    xopconwriter.h
+    xopconwriter.cpp
+    xopconreader.h
+    xopconreader.cpp
+    messerver.ui
+    messerver.qrc
+    ${TS_FILES})
 
 qt_add_executable(MesSever MANUAL_FINALIZATION ${PROJECT_SOURCES})
 qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
