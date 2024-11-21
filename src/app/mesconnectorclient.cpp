@@ -26,7 +26,7 @@ MESConnectorClient::MESConnectorClient(QWidget *parent)
     // init client
     ui->setupUi(this);
     loadSettings();
-    QPixmap bosch(":/img/Bosch-logo.svg");
+    QPixmap bosch(":/img/bosch.svg");
     ui->link_bosch->setScaledContents(true);
     ui->link_bosch->setAutoFillBackground(true);
     ui->link_bosch->setPixmap(bosch);
@@ -67,7 +67,6 @@ MESConnectorClient::~MESConnectorClient()
 
 void MESConnectorClient::onServerReply()
 {
-#if 1
     // 3. recevie XML response file stream from mes server
     QByteArray buffer;
     quint32 bufferSize = 0;
@@ -111,19 +110,22 @@ void MESConnectorClient::onServerReply()
                                  .arg(QDir::toNativeSeparators(pathPartReceived), xopconReader.errorString()));
     }
 
-    // partIndentifier = xopconReader.partIdentifier();
     processNo = xopconReader.processNo();
     typeNo = xopconReader.typeNo();
 
     file.close();
 
-    if (MESConnectorClient::PartRecevied == partStatus)
-        on_btn_startInspect_clicked();
-
     // 5. respond to the result
-    updateSystemLog(QString("server reply: partForStation: %1, typeNo: %2.")
-                        .arg(xopconReader.partForStation(), xopconReader.typeNo()));
-#endif
+    if (MESConnectorClient::PartRecevied == partStatus && "true" == xopconReader.partForStation()) {
+        // post process for part recevied
+        on_btn_startInspect_clicked();
+        updateSystemLog(QString("server reply: partForStation: %1, typeNo: %2.")
+                            .arg(xopconReader.partForStation(), xopconReader.typeNo()));
+    } else if (MESConnectorClient::PartProcessed == partStatus) {
+        int item = ui->combo_partList->currentIndex();
+        ui->combo_partList->setItemIcon(item, QIcon(":/img/Bosch-logo.png"));
+        updateSystemLog(QString("server replied for part processed.(Code:%1)").arg(xopconReader.returnCode()));
+    }
 }
 
 void MESConnectorClient::onDataloopReply()
@@ -397,7 +399,7 @@ void MESConnectorClient::on_btn_startInspect_clicked()
 #else
     QDir dir(QDir::currentPath());
     dir.cd("../../../../");
-    QString macropath = QString("%1/src/mscl/FindInspectTemplate.pwmacro").arg(dir.path());
+    QString macropath = QString("%1/src/app/mscl/FindInspectTemplate.pwmacro").arg(dir.path());
     qDebug() << macropath;
 #endif
     polyworks = new PolyWorks();
@@ -444,6 +446,7 @@ void MESConnectorClient::on_tab_inspection_currentChanged(int index)
             if (json.isEmpty() || json.isNull())
                 return;
 
+            ui->combo_partList->clear();
             QJsonArray jsonArray = json.object()["value"].toArray()[0].toObject()["inspectorPieces"].toArray();
             for (const QJsonValueRef item : jsonArray) {
                 ui->combo_partList->addItem(item.toObject()["name"].toString(), item.toObject()["id"].toString());

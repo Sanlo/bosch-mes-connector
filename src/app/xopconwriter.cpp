@@ -35,6 +35,7 @@ void XopconWriter::writeItem() {}
 
 void XopconWriter::writeHeader()
 {
+    // write header and attribute
     xml.writeStartElement("header"_L1);
     xml.writeAttribute("version"_L1, "V2.x"_L1);
 
@@ -44,8 +45,10 @@ void XopconWriter::writeHeader()
     } else if (eventType == EventType::PartProcessed) {
         xml.writeAttribute("eventName"_L1, "partProcessed"_L1);
     }
+    xml.writeAttribute("contentType"_L1, "3"_L1);
+    xml.writeAttribute("timeStamp"_L1, QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss.zzz+08:00"));
 
-    // write location element
+    // write location and attribue
     xml.writeStartElement("location"_L1);
     QSettings clientSettings("MesConnector", "Client");
     xml.writeAttribute("lineNo"_L1, lineNo());
