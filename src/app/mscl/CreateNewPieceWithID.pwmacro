@@ -1,0 +1,35 @@
+version "6.0"
+#==========================================================
+# ---- InnovMetric Software Inc.
+# ---- Module  :    PolyWorks|Inspector
+# ---- Version :    2023 IR11.2 (build 5602)
+# ---- Date    :    Wednesday, November 20, 2024 - 17:14:50
+#----------------------------------------------------------
+############################### POLYWORKS #################################
+#
+# ---- InnovMetric Software Inc.
+# ---- Module  :    PolyWorks|Inspector
+# ---- Version :    2023 IR11.2
+# ---- Date    :    Nov 18, 24
+#
+############################### DISCLAIMER ################################
+#
+# This macro script is provided "AS IS", and may contain bugs, errors, and 
+# other problems that could cause system or other failures and data loss. 
+# InnovMetric Software Inc. disclaims any warranty or liability obligations 
+# of any kind to the user of this macro.
+#
+############################### DESCRIPTION ###############################
+#
+#
+#
+################################ REVISION #################################
+#
+#
+#
+############################### PARAMETERS ################################
+################################ SUBMACROS ################################
+############################# LOCAL VARIABLES #############################
+############################# SHARED VARIABLES ############################
+################################## CODE ###################################
+PIECE NEW (  )
