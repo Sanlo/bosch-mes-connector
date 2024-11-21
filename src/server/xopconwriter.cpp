@@ -45,6 +45,9 @@ void XopconWriter::writeHeader()
         xml.writeAttribute("eventName"_L1, "partProcessed"_L1);
     }
 
+    xml.writeAttribute("contentType"_L1, "3"_L1);
+    xml.writeAttribute("timeStamp"_L1, QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss.zzz+08:00"));
+
     // write location element
     xml.writeStartElement("location"_L1);
     QSettings clientSettings("MesConnector", "Client");

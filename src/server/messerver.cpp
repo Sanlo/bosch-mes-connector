@@ -70,7 +70,10 @@ void MesServer::sendReply()
         return;
     }
 
-    QString filePath = PATH_PART_RECEVIED + "/Response_10.179.90.149_46635c0a-fabe-4bc4-a0ca-0184bd1496f5_IO.xml";
+    QString filePath
+        = (int) XopconReader::PartRecevied == currentEvent
+              ? QString("%1/Response_10.179.90.149_46635c0a-fabe-4bc4-a0ca-0184bd1496f5_IO.xml").arg(PATH_PART_RECEVIED)
+              : QString("%1/Response_10.179.90.149_46635c0a-fabe-4bc4-a0ca-0184bd1496f5_IO.xml").arg(PATH_PART_PROCESSED);
     QFile file(filePath);
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -131,6 +134,9 @@ void MesServer::readSocket()
     }
 
     qDebug() << reader.eventName();
+
+    currentEvent = (int) ("partReceived" == reader.eventName() ? XopconReader::PartRecevied
+                                                               : XopconReader::PartProcessed);
 
     file.close();
 

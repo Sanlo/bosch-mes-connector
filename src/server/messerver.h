@@ -42,6 +42,7 @@ private:
 
     QString PATH_PART_PROCESSED;
     QString PATH_PART_RECEVIED;
+    int currentEvent;
 };
 
 #endif // MESSERVER_H

@@ -10,7 +10,12 @@ QT_END_NAMESPACE
 class XopconReader
 {
 public:
-    XopconReader();
+    enum EventType {
+        PartRecevied,
+        PartProcessed,
+    };
+
+    explicit XopconReader();
 
     bool read(QIODevice *device);
     QString errorString() const;
