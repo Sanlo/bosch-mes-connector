@@ -390,10 +390,18 @@ void MESConnectorClient::on_edit_partID_textChanged(const QString &arg1)
 
 void MESConnectorClient::on_btn_startInspect_clicked()
 {
-    QString argVar = QString("%1 %2 %3").arg(processNo, typeNo, partIndentifier);
-    QString macropath
-        = "C:/Users/sanlozhang/Documents/GitHub/bosch-mes-connector/src/app/mscl/FindInspectTemplate.pwmacro";
+#ifdef NDEBUG
+    QString macropath = QString("%1/mscl/FindInspectTemplate.pwmacro").arg(QDir::currentPath());
+    qDebug() << macropath;
+    QMessageBox::information(this, QString("Path"), macropath);
+#else
+    QDir dir(QDir::currentPath());
+    dir.cd("../../../../");
+    QString macropath = QString("%1/src/mscl/FindInspectTemplate.pwmacro").arg(dir.path());
+    qDebug() << macropath;
+#endif
     polyworks = new PolyWorks();
+    QString argVar = QString("%1 %2 %3").arg(processNo, typeNo, partIndentifier);
     polyworks->scriptExecute(PolyWorks::MODULE_WORKSPACE,
                              macropath.toStdWString().c_str(),
                              argVar.toStdWString().c_str());

@@ -8,20 +8,23 @@
 #include "ui_messerver.h"
 #include "xopconreader.h"
 
-const QString PATH_PART_PROCESSED = {"C:/Users/sanlozhang/Documents/GitHub/boschData/partProcessed"};
-const QString PATH_PART_RECEVIED = {"C:/Users/sanlozhang/Documents/GitHub/boschData/partRecevied"};
-
 MesServer::MesServer(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::MesServer)
 {
     ui->setupUi(this);
+
+    PATH_PART_PROCESSED = QString("%1/Documents/GitHub/boschData/partProcessed").arg(QDir::homePath());
+    PATH_PART_RECEVIED = QString("%1/Documents/GitHub/boschData/partRecevied").arg(QDir::homePath());
+    qDebug() << PATH_PART_PROCESSED;
+    qDebug() << PATH_PART_RECEVIED;
 }
 
 MesServer::~MesServer()
 {
     delete ui;
-    clientConnection->disconnectFromHost();
+    if (clientConnection)
+        clientConnection->disconnectFromHost();
 }
 
 void MesServer::newConnection()
@@ -108,7 +111,7 @@ void MesServer::readSocket()
     // save buffer to local file
     updateSystemLog(QString("Client send a xml file. Size: %1").arg(bufferSize));
 
-    QString pathRequest = "C:/Users/sanlozhang/Documents/GitHub/boschData/serverData";
+    QString pathRequest = QString("%1/Documents/GitHub/boschData/serverData").arg(QDir::homePath());
     const QString fileReq = QString("%1/Request_%2_%3.xml")
                                 .arg(pathRequest,
                                      clientConnection->peerAddress().toString(),

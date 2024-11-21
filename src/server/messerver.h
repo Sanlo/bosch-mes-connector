@@ -39,6 +39,9 @@ private:
 
     QTcpServer *tcpServer = nullptr;
     QTcpSocket *clientConnection = nullptr;
+
+    QString PATH_PART_PROCESSED;
+    QString PATH_PART_RECEVIED;
 };
 
 #endif // MESSERVER_H
