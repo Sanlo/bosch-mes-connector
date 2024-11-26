@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
     for (const QString &locale : uiLanguages) {
         const QString baseName = "MesConnector_" + QLocale(locale).name();
         if (translator.load(":/i18n/" + baseName)) {
+            qDebug() << baseName;
             a.installTranslator(&translator);
             break;
         }

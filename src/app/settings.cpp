@@ -26,12 +26,12 @@ void Settings::on_btn_settingsApply_clicked()
 {
     QString theme;
     if (ui->radio_light->isChecked()) {
-        theme = tr("light");
+        theme = "light";
     }
     if (ui->radio_dark->isChecked())
-        theme = tr("dark");
+        theme = "dark";
     if (ui->radio_auto->isChecked())
-        theme = tr("auto");
+        theme = "auto";
 
     QSettings clientSettings("MesConnector", "Client");
     // general settings
@@ -54,8 +54,6 @@ void Settings::on_btn_settingsApply_clicked()
     clientSettings.setValue("connection/mes/processNo", ui->edit_mes_processNo->text());
     clientSettings.setValue("connection/mes/processName", ui->edit_mes_processName->text());
     clientSettings.setValue("connection/mes/application", ui->edit_mes_application->text());
-
-    accept();
 }
 
 void Settings::loadSettings()
@@ -64,13 +62,13 @@ void Settings::loadSettings()
 
     // retrieve general settings
     QString theme = clientSettings.value("general/theme").toString();
-    if (theme == tr("light")) {
+    if (theme == QString("light")) {
         ui->radio_light->setChecked(true);
     }
-    if (theme == tr("dark")) {
+    if (theme == QString("dark")) {
         ui->radio_dark->setChecked(true);
     }
-    if (theme == tr("auto")) {
+    if (theme == QString("auto")) {
         ui->radio_auto->setChecked(true);
     }
     ui->combo_language->setCurrentIndex(clientSettings.value("general/language").toInt());

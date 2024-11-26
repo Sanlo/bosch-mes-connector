@@ -40,7 +40,7 @@ bool XopconReader::read(QIODevice *device)
 }
 
 QString XopconReader::errorString() const {
-    return QObject::tr("%1\nLine %2, column %3").arg(xml.errorString()).arg(xml.lineNumber()).arg(xml.columnNumber());
+    return QString("%1\nLine %2, column %3").arg(xml.errorString()).arg(xml.lineNumber()).arg(xml.columnNumber());
 }
 
 void XopconReader::readHeader() {

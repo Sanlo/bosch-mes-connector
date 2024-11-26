@@ -4,5 +4,6 @@
         <file>img/check_green.svg</file>
         <file>img/bosch.svg</file>
         <file>img/Bosch-logo.png</file>
+        <file>MesConnector_zh_CN.qm</file>
     </qresource>
 </RCC>
