@@ -38,7 +38,7 @@ private:
     void updateSystemLog(const QString &msg);
 
     QTcpServer *tcpServer = nullptr;
-    QTcpSocket *clientConnection = nullptr;
+    QTcpSocket *clientSocket = nullptr;
 
     QString PATH_PART_PROCESSED;
     QString PATH_PART_RECEVIED;

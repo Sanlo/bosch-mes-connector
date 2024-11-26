@@ -23,21 +23,21 @@ MesServer::MesServer(QWidget *parent)
 MesServer::~MesServer()
 {
     delete ui;
-    if (clientConnection)
-        clientConnection->disconnectFromHost();
+    if (clientSocket)
+        clientSocket->disconnectFromHost();
 }
 
 void MesServer::newConnection()
 {
-    clientConnection = tcpServer->nextPendingConnection();
-    connect(clientConnection, &QAbstractSocket::readyRead, this, &MesServer::readSocket);
-    connect(clientConnection, &QAbstractSocket::disconnected, this, [&] {
+    clientSocket = tcpServer->nextPendingConnection();
+    connect(clientSocket, &QAbstractSocket::readyRead, this, &MesServer::readSocket);
+    connect(clientSocket, &QAbstractSocket::disconnected, this, [&] {
         updateSystemLog(QString("The client (IP:%1, Port:%2) disconnected from MES server.")
-                            .arg(clientConnection->peerAddress().toString())
-                            .arg(clientConnection->peerPort()));
+                            .arg(clientSocket->peerAddress().toString())
+                            .arg(clientSocket->peerPort()));
     });
-    connect(clientConnection, &QAbstractSocket::errorOccurred, this, &MesServer::displayError);
-    updateSystemLog(tr("A client connect to MES server"));
+    connect(clientSocket, &QAbstractSocket::errorOccurred, this, &MesServer::displayError);
+    updateSystemLog(QString("A client connect to MES server"));
 }
 
 void MesServer::displayError(QAbstractSocket::SocketError socketError)
@@ -48,24 +48,24 @@ void MesServer::displayError(QAbstractSocket::SocketError socketError)
     case QAbstractSocket::HostNotFoundError:
         QMessageBox::information(
             this,
-            tr("MES Server"),
+            QString("MES Server"),
             QString(
                 "The connection is refused by the peer" "Make sure the server is running, and " "check " "the ip and " "port " "settings"));
         break;
     default:
         QMessageBox::information(this,
-                                 tr("MES Server"),
-                                 QString("The following error occurred: %1").arg(clientConnection->errorString()));
+                                 QString("MES Server"),
+                                 QString("The following error occurred: %1").arg(clientSocket->errorString()));
     }
 }
 
 void MesServer::sendReply()
 {
-    if (!clientConnection) {
+    if (!clientSocket) {
         updateSystemLog("ERROR: Use connection is lost!");
         return;
     }
-    if (!clientConnection->isOpen()) {
+    if (!clientSocket->isOpen()) {
         updateSystemLog("ERROR: Use connection is closed!");
         return;
     }
@@ -81,55 +81,42 @@ void MesServer::sendReply()
         return;
     }
 
-    QDataStream out(clientConnection);
-    out.setVersion(QDataStream::Qt_6_8);
-    // add message header
-    out << (quint32) (file.size() - sizeof(qint32));
-    // add message body
-    out << file.readAll();
+    QByteArray data;
+    quint32 dataSize = file.size() + sizeof(quint32);
+    QByteArray size = QByteArray::fromRawData(reinterpret_cast<const char *>(&dataSize), sizeof(dataSize));
+    std::reverse(size.begin(), size.end());
+    data.append(size);
+    data.append(file.read(file.size()));
+    clientSocket->write(data);
 }
 
 void MesServer::readSocket()
 {
-    QByteArray buffer;
-    quint32 bufferSize = 0;
+    QBuffer buffer;
+    buffer.setData(clientSocket->readAll());
+    buffer.open(QBuffer::ReadWrite);
 
-    QDataStream in(clientConnection);
-    in.setVersion(QDataStream::Qt_6_8);
+    const quint32 bufferSize = qFromBigEndian<quint32>(buffer.read(sizeof(quint32)));
 
-    // read buffer from socket
-    in.startTransaction();
-    in >> bufferSize;
-    if (clientConnection->bytesAvailable() > bufferSize) {
-        qDebug() << clientConnection->bytesAvailable();
-        updateSystemLog("Data size ERROR: no enough size to read data!");
-        return;
-    }
-    in >> buffer;
-    if (!in.commitTransaction()) {
-        updateSystemLog("Data transaction error occured!");
-        return;
-    }
+    updateSystemLog(QString("Client send a xml file. Size: %1.").arg(bufferSize));
 
-    // save buffer to local file
-    updateSystemLog(QString("Client send a xml file. Size: %1").arg(bufferSize));
-
+    // save buffer to local file for debug
     QString pathRequest = QString("%1/Documents/GitHub/boschData/serverData").arg(QDir::homePath());
-    const QString fileReq = QString("%1/Request_%2_%3.xml")
-                                .arg(pathRequest,
-                                     clientConnection->peerAddress().toString(),
-                                     QUuid::createUuid().toString(QUuid::WithoutBraces));
-    QFile file(fileReq);
+    const QString fileName = QString("%1/Request_%2_%3.xml")
+                                 .arg(pathRequest,
+                                      clientSocket->peerAddress().toString(),
+                                      QUuid::createUuid().toString(QUuid::WithoutBraces));
+    QFile file(fileName);
     if (file.open(QIODevice::ReadWrite | QIODevice::Text)) {
-        file.write(buffer);
+        file.write(buffer.data().mid(sizeof(quint32)));
     }
     file.seek(0);
 
     XopconReader reader;
     if (!reader.read(&file)) {
         QMessageBox::warning(this,
-                             tr("MES Server"),
-                             tr("Parse error in file %1:\n\n%2")
+                             QString("MES Server"),
+                             QString("Parse error in file %1:\n\n%2")
                                  .arg(QDir::toNativeSeparators(pathRequest), reader.errorString()));
     }
 
@@ -174,24 +161,24 @@ void MesServer::on_btn_startServer_clicked()
 
     if (!tcpServer->listen(ipAddress, ui->edit_serverPort->text().toInt())) {
         QMessageBox::critical(this,
-                              tr("MES Server"),
-                              tr("Unable to start the sever: %1.").arg(tcpServer->errorString()));
+                              QString("MES Server"),
+                              QString("Unable to start the sever: %1.").arg(tcpServer->errorString()));
         close();
         return;
     }
 
     ui->label_status->setText(
-        tr("The Server is running on IP: %1, Port: %2").arg(ipAddress.toString(), ui->edit_serverPort->text()));
+        QString("The Server is running on IP: %1, Port: %2").arg(ipAddress.toString(), ui->edit_serverPort->text()));
 
     connect(tcpServer, &QTcpServer::newConnection, this, &MesServer::newConnection);
 
-    updateSystemLog(tr("Server Started successful!"));
+    updateSystemLog(QString("Server Started successful!"));
 }
 
 void MesServer::updateSystemLog(const QString &msg)
 {
     if (!msg.isEmpty()) {
         ui->edit_systemLog->append(
-            tr("%1: %2").arg(QDateTime::currentDateTime().toString(tr("yyyy-MM-dd-hh:mm:ss")), msg));
+            QString("%1: %2").arg(QDateTime::currentDateTime().toString(QString("yyyy-MM-dd-hh:mm:ss")), msg));
     }
 }
