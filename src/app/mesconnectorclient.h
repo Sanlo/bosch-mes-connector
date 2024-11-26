@@ -39,10 +39,12 @@ private slots:
     void on_edit_partID_textChanged(const QString &arg1);
     void on_btn_startInspect_clicked();
     void on_btn_transmit_clicked();
-
     void on_tab_inspection_currentChanged(int index);
-
     void on_tab_connection_currentChanged(int index);
+    void on_btn_clearLog_clicked();
+    void on_btn_copyLog_clicked();
+
+    void on_btn_connect_dataloop_clicked();
 
 private:
     Ui::MESConnectorClient *ui;
@@ -67,6 +69,8 @@ private:
 
     void loadSettings();
     void updateUI();
+    void startInspection();
+    bool testDataloopConnection();
     void updateSystemLog(const QString &msg);
     void sendMessage(QAnyStringView msg = nullptr);
     bool sendRequest(QIODevice *buffer);

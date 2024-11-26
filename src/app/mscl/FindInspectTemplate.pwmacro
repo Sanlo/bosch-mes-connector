@@ -37,36 +37,86 @@ DECLARE inspectorTemplate_ $2
 # [3][Input][String] Description (Possible Values:)
 DECLARE partIdetifier_ $3
 
+# [4][Output][Integer] Return Code (Possible Values: 200, 40x)
+DECLARE returnCode_ $4
+
+# [5][Output][String] Return Msg (Possible Values: "Successful")
+DECLARE returnMsg_ $5
+
+
+
 
 ################################ SUBMACROS ################################
 ############################# LOCAL VARIABLES #############################
 DECLARE dlInspectorProjectId
 DECLARE dlInspectorProjectName
+DECLARE dlInspectionTemplateId
 DECLARE dlObjectType
 DECLARE dlWorkspaceId
-
 DECLARE inspectorID
 ############################# SHARED VARIABLES ############################
 ################################## CODE ###################################
 
-IF NOT HAS_VALUE ( inspectorName_ )
-    SET inspectorName_ "620"
-ENDIF
-if NOT HAS_VALUE ( inspectorTemplate_ )
-    SET inspectorTemplate_ "B"
+# Check input argument
+IF NOT HAS_VALUE ( inspectorName_ ) OR NOT HAS_VALUE ( inspectorTemplate_ )
+    SET returnCode_ 404
+    SET returnMsg_ "Can't find the PolyWorks inspection project and/or piece template"
+    
+    MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
+    MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+    MACRO END ( "Error" )
 ENDIF
 
-DATALOOP LOG_IN ( "sanlo", "Datal00p" )
+# Check Dataloop connection and try to login
+DECLARE connectionName
+DECLARE connectionStatus
+
+DATALOOP CONNECTED GET ( connectionStatus )
+IF $connectionStatus != "On"
+    DATALOOP CONNECTION ACTIVE GET ( connectionName )
+    IF NOT HAS_VALUE ( connectionName )
+        SET returnCode_ 401
+        SET returnMsg_ "Please finished the DataLoop connection parameter setup first."
+        
+        MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
+        MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+        MACRO END ( "Error" )
+    ENDIF
+    
+    DATALOOP CONNECTION INTERFACE SHOW_PARAMETERS ( "Off" )
+    DATALOOP CONNECTION INTERFACE ( "On" )
+ENDIF
+
+
 
 DATALOOP SEARCH ( "Inspector project", $inspectorName_, dlInspectorProjectId, "Exact Match")
+IF NOT HAS_VALUE ( dlInspectorProjectId )
+    SET returnCode_ 403
+    SET returnMsg_ "Cannot find this project in DataLoop: ${inspectorName_}."    
+    MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
+    MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+    MACRO END ( "Error" )
+ENDIF
+
+DATALOOP SEARCH ( "Inspector piece template", $inspectorTemplate_, dlInspectionTemplateId, "Exact Match" )
+IF NOT HAS_VALUE ( dlInspectionTemplateId )
+    SET returnCode_ 403
+    SET returnMsg_ "Cannot find this template in DataLoop: ${inspectorTemplate_}."
+    MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
+    MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+    MACRO END ( "Error" )
+ENDIF
+
 
 DATALOOP OBJECT INFO GET ( $dlInspectorProjectId, dlInspectorProjectName, dlObjectType, dlWorkspaceId )
-
 DATALOOP WORKSPACE OPEN ( $dlWorkspaceId )
 
 MODULE POLYWORKS_INSPECTOR START USING_OBJECTS ( , $dlInspectorProjectName, inspectorID, "On", "Full" )
 
-#MACRO EXEC REMOTE_COMMAND ( "PIECE TEMPLATE OPEN", $inspectorID, $inspectorTemplate_  )
-
 MACRO EXEC REMOTE_COMMAND ( "PIECE NEW", $inspectorID, $partIdetifier_, $inspectorTemplate_  )
+
+SET returnCode_ 200
+SET returnMsg_ "Start insection successful."
+MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
+MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
 

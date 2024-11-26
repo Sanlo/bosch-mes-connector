@@ -36,12 +36,20 @@ bool PolyWorks::scriptExecute(ModuleType module, const OLECHAR *filePath, const 
     if (ModuleType::MODULE_WORKSPACE == module && m_pWSMCommandCenter) {
         // Run Workspace Manager Macro script file
         if (SUCCEEDED(m_pWSMCommandCenter->ScriptExecuteFromFile(filePath, arg, &retVal)) && (retVal == 1)) {
-            // BSTR str = NULL;
-            // if (SUCCEEDED(m_pWSMCommandCenter->ScriptVariableGetValueAsString(L"prjName", 1, &str, &retVal))
-            //     && SUCCEEDED(m_pWSMCommandCenter->ReturnValueIsSuccess(retVal, &plsSuccess)) && (plsSuccess == 1)) {
-            //     m_projectName = str;
-            // }
-            // ::SysFreeString(str);
+            long valIndex;
+            m_pWSMCommandCenter->ScriptVariableGetNbValues(L"returnCode_", &valIndex);
+            if (SUCCEEDED(
+                    m_pWSMCommandCenter->ScriptVariableGetValueAsInt(L"returnCode_", valIndex, &m_returnCode, &retVal))
+                && SUCCEEDED(m_pWSMCommandCenter->ReturnValueIsSuccess(retVal, &plsSuccess)) && plsSuccess) {
+            }
+
+            BSTR str = NULL;
+            m_pWSMCommandCenter->ScriptVariableGetNbValues(L"returnMsg_", &valIndex);
+            if (SUCCEEDED(m_pWSMCommandCenter->ScriptVariableGetValueAsString(L"returnMsg_", valIndex, &str, &retVal))
+                && SUCCEEDED(m_pWSMCommandCenter->ReturnValueIsSuccess(retVal, &plsSuccess)) && plsSuccess) {
+                m_returnMsg = str;
+            }
+            ::SysFreeString(str);
             return true;
         }
     }
@@ -75,4 +83,3 @@ void PolyWorks::startWorkspaceManager()
     }
 }
 
-void PolyWorks::initInspector(const OLECHAR *prjName) {}

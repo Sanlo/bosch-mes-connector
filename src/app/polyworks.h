@@ -20,15 +20,18 @@ public:
     ~PolyWorks();
     bool scriptExecute(ModuleType module, const OLECHAR *filePath, const OLECHAR *arg);
 
+    inline int returnCode() const { return m_returnCode; }
+    inline const std::wstring returnMessage() const { return m_returnMsg; }
+
 private:
     void startWorkspaceManager();
-    void initInspector(const OLECHAR *prjName);
 
     IIMWorkspaceManager2 *m_pIMWorkspaceManager2;
     IIMCommandCenter *m_pIMInspectCommandCenter;
     IIMCommandCenter *m_pWSMCommandCenter;
 
-    std::wstring m_projectName;
+    int m_returnCode;
+    std::wstring m_returnMsg;
 };
 
 #endif // POLYWORKS_H
