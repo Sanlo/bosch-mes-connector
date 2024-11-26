@@ -66,8 +66,9 @@ private:
     PolyWorks *polyworks = nullptr;
 
     void loadSettings();
+    void updateUI();
     void updateSystemLog(const QString &msg);
     void sendMessage(QAnyStringView msg = nullptr);
-    bool sendFile(QIODevice *file);
+    bool sendRequest(QIODevice *buffer);
 };
 #endif // MESCONNECTORCLIENT_H
