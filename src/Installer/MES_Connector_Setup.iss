@@ -2,7 +2,7 @@
 
 #define MyAppName "MesConnector"
 #define MyAppExeName "MesConnector.exe"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "PolyWorks Shanghai Inc."
 #define MyAppURL "https://www.polyworks.com.cn/"
 #define MyFilePath "C:\Users\sanlozhang\Documents\GitHub\bosch-mes-connector\build\Desktop_Qt_6_8_0_MSVC2022_64bit-MinSizeRel\src\app"
@@ -32,6 +32,8 @@ SetupIconFile=C:\Users\sanlozhang\Documents\GitHub\bosch-mes-connector\src\serve
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+DisableWelcomePage=no
+WizardImageFile={#SourcePath}banner1.bmp
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -50,10 +52,11 @@ Source: "{#MyFilePath}\platforms\*"; DestDir: "{app}\platforms\"; Flags: ignorev
 Source: "{#MyFilePath}\styles\*"; DestDir: "{app}\styles\"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#MyFilePath}\tls\*"; DestDir: "{app}\tls\"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#MyFilePath}\mscl\*"; DestDir: "{app}\mscl\"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#MyFilePath}\User Reference.pdf"; DestDir: "{app}"; Flags: isreadme
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\{cm:LaunchProgram,{#MyAppName}}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 
