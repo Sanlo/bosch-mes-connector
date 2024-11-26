@@ -2,9 +2,10 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Concurrent
+                                                  LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network
-                                                       LinguistTools)
+                                                       Concurrent LinguistTools)
 
 include_directories(
   "C:/Program Files/InnovMetric/PolyWorks MS 2023/goodies/PolyWorksSDK/include")
@@ -31,12 +32,16 @@ qt_add_executable(
   xopconreader.h
   xopconreader.cpp
   mscconnector.qrc
-  polyworks.h polyworks.cpp
-  dataloop.h dataloop.cpp)
+  polyworks.h
+  polyworks.cpp
+  dataloop.h
+  dataloop.cpp)
 qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
-target_link_libraries(MesConnector PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
-                                           Qt${QT_VERSION_MAJOR}::Network)
+target_link_libraries(
+  MesConnector
+  PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network
+          Qt${QT_VERSION_MAJOR}::Concurrent)
 
 set_target_properties(MesConnector PROPERTIES WIN32_EXECUTABLE TRUE)
 
