@@ -17,6 +17,8 @@
 
 using namespace Qt::StringLiterals;
 
+// Test git
+
 MESConnectorClient::MESConnectorClient(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::MESConnectorClient)
