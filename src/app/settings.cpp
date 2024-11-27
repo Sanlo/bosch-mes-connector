@@ -83,12 +83,18 @@ void Settings::loadSettings()
 
     // retrieve workstation settings
     ui->edit_mes_lineNo->setText(clientSettings.value("connection/mes/lineNo").toString());
-    ui->edit_mes_statNo->setText(clientSettings.value("connection/mes/statNo").toString());
+
+    QString statNo = clientSettings.value("connection/mes/statNo").toString();
+    ui->edit_mes_statNo->setText(statNo.isEmpty() ? "680" : statNo);
+
     ui->edit_mes_statIdx->setText(clientSettings.value("connection/mes/statIdx").toString());
     ui->edit_mes_fuNo->setText(clientSettings.value("connection/mes/fuNo").toString());
     ui->edit_mes_workPos->setText(clientSettings.value("connection/mes/workPos").toString());
     ui->edit_mes_toolPos->setText(clientSettings.value("connection/mes/toolPos").toString());
-    ui->edit_mes_processNo->setText(clientSettings.value("connection/mes/processNo").toString());
+
+    QString processNo = clientSettings.value("connection/mes/processNo").toString();
+    ui->edit_mes_processNo->setText(processNo.isEmpty() ? "38213680" : processNo);
+
     ui->edit_mes_processName->setText(clientSettings.value("connection/mes/processName").toString());
     ui->edit_mes_application->setText(clientSettings.value("connection/mes/application").toString());
 }
@@ -147,12 +153,14 @@ void Settings::on_btn_testDL_clicked()
     DataLoop *dataloop = new DataLoop(this, ui->edit_dlAPI->text(), ui->edit_dlToken->text());
 
     QNetworkReply *reply = dataloop->testConnection();
+    reply->ignoreSslErrors();
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (200 == reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)) {
             QPixmap pixmap(":/img/check_green.svg");
             // pixmap.scaled(QSize(48, 48));
             ui->label_dlStatus->setPixmap(pixmap);
             ui->label_dlStatus->setScaledContents(true);
+            
         }
     });
 }

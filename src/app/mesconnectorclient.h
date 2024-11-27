@@ -14,6 +14,8 @@ class QDataStream;
 class QNetworkAccessManager;
 class DataLoop;
 class PolyWorks;
+class QTimer;
+class QThread;
 QT_END_NAMESPACE
 
 class MESConnectorClient : public QDialog {
@@ -43,8 +45,7 @@ private slots:
     void on_tab_connection_currentChanged(int index);
     void on_btn_clearLog_clicked();
     void on_btn_copyLog_clicked();
-
-    void on_btn_connect_dataloop_clicked();
+    void on_checkAutoTransmit_checkStateChanged(const Qt::CheckState &arg1);
 
 private:
     Ui::MESConnectorClient *ui;
@@ -59,13 +60,17 @@ private:
     EventType partStatus;
     QString currentUuid;
     QString partIndentifier;
-    QString processNo;
-    QString typeNo = "A";
+    QString statNo = "680";
+    QString processNo = "38213680";
+    QString typeNo = "0452B37080";
+    QString typeVar = "00";
 
     QTcpSocket *tcpSocket = nullptr;
     QNetworkAccessManager *networkManager = nullptr;
     DataLoop *dataloop = nullptr;
     PolyWorks *polyworks = nullptr;
+    QTimer *pollingTimer = nullptr;
+    QThread *pollingThread = nullptr;
 
     void loadSettings();
     void updateUI();

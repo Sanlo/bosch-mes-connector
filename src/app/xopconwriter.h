@@ -23,6 +23,8 @@ public:
     inline QString processNo() const { return this->xmlProcessNo; }
     inline QString processName() const { return this->xmlProcessName; }
     inline QString application() const { return this->xmlApplication; }
+    inline QString typeNo() const { return this->xmlPartTypeNo; }
+    inline QString typeVar() const { return this->xmlPartTypeVar; }
     // Setter
     inline void setLineNo(const QString &str) { xmlLineNo = str; }
     inline void setStatNo(const QString &str) { xmlStatNo = str; }
@@ -33,6 +35,8 @@ public:
     inline void setProcessNo(const QString &str) { xmlProcessNo = str; }
     inline void setProcessName(const QString &str) { xmlProcessName = str; }
     inline void setApplication(const QString &str) { xmlApplication = str; }
+    inline void setTypeNo(const QString &str) { xmlPartTypeNo = str; }
+    inline void setTypeVar(const QString &str) { xmlPartTypeVar = str; }
 
     inline void setMeasureData(QStringList objName, QStringList controlName, QList<double> measureValue)
     {
@@ -46,6 +50,7 @@ private:
     void writeHeader();
     void writeEvent();
     void writeBody();
+    void writeBodyStructs();
 
     QXmlStreamWriter xml;
 
@@ -62,6 +67,9 @@ private:
     QString xmlProcessNo;
     QString xmlProcessName;
     QString xmlApplication;
+    // xml body.event
+    QString xmlPartTypeNo;
+    QString xmlPartTypeVar;
 
     // measurement items
     QStringList m_objname;

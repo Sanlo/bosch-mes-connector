@@ -45,13 +45,22 @@ MESConnectorClient::MESConnectorClient(QWidget *parent)
     });
     // setup signal/slot of DataLoop API
     connect(networkManager, &QNetworkAccessManager::finished, this, &MESConnectorClient::onDataloopReply);
+    connect(networkManager, &QNetworkAccessManager::sslErrors, this, [=]() {
+        updateSystemLog(QString("DL connection SSL Errror"));
+    });
 }
 
 MESConnectorClient::~MESConnectorClient()
 {
-    delete ui;
+    if (pollingThread && pollingThread->isRunning()) {
+        pollingThread->quit();
+        pollingThread->wait();
+    }
+
     if (polyworks)
         delete polyworks;
+
+    delete ui;
 }
 
 void MESConnectorClient::onServerReply()
@@ -92,14 +101,19 @@ void MESConnectorClient::onServerReply()
     }
 
     // Retrive response data from server reply
-    processNo = xopconReader.processNo();
+    processNo = xopconReader.nextProcessNo();
+    statNo = processNo.right(3);
     typeNo = xopconReader.typeNo();
+    typeVar = xopconReader.typeVar();
 
+    QSettings clientSettings("MesConnector", "Client");
+    clientSettings.setValue("connection/mes/statNo", statNo);
+    clientSettings.setValue("connection/mes/processNo", processNo);
 
     // 5. respond to the result
     if (MESConnectorClient::PartRecevied == partStatus && "true" == xopconReader.partForStation()) {
         // post process for part recevied
-        startInspection();
+        // startInspection();
         updateSystemLog(QString("server reply: partForStation: %1, typeNo: %2.")
                             .arg(xopconReader.partForStation(), xopconReader.typeNo()));
     } else if (MESConnectorClient::PartProcessed == partStatus) {
@@ -113,7 +127,12 @@ void MESConnectorClient::onServerReply()
 void MESConnectorClient::onDataloopReply()
 {
     QNetworkReply *reply = reinterpret_cast<QNetworkReply *>(sender());
+
     QJsonDocument json = QJsonDocument::fromJson(reply->readAll());
+    if (json.isEmpty()) {
+        updateSystemLog(QString("DataLoop measurement value is empty"));
+        return;
+    }
     QJsonArray controlArray = json.object()["value"].toArray();
     QStringList objNames, controlNames;
     QList<double> measuredList;
@@ -128,6 +147,38 @@ void MESConnectorClient::onDataloopReply()
         }
     }
 
+    // 1. generate XML request file with part id and system info
+    QBuffer buffer;
+    buffer.open(QBuffer::ReadWrite);
+    XopconWriter writer(partIndentifier, XopconWriter::PartProcessed);
+    writer.setMeasureData(objNames, controlNames, measuredList);
+    // set xml location info
+    QSettings clientSettings("MesConnector", "Client");
+    writer.setLineNo(clientSettings.value("connection/mes/lineNo").toString());
+    writer.setStatNo(statNo);
+    writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
+    writer.setFuNo(clientSettings.value("connection/mes/fuNo").toString());
+    writer.setWorkPos(clientSettings.value("connection/mes/workPos").toString());
+    writer.setToolPos(clientSettings.value("connection/mes/toolPos").toString());
+    writer.setProcessNo(processNo);
+    writer.setProcessName(clientSettings.value("connection/mes/processName").toString());
+    writer.setApplication(clientSettings.value("connection/mes/application").toString());
+    // set xml event data
+    writer.setTypeNo(typeNo);
+    writer.setTypeVar(typeVar);
+
+    writer.writeXmlData(&buffer);
+
+    // 2. send request file to mes server
+    buffer.seek(0);
+    if (!sendRequest(&buffer)) {
+        updateSystemLog("Cannot build communications with MES server");
+        return;
+    }
+
+    // write Request file to local for debug
+    if (currentUuid.isEmpty())
+        currentUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const QString fileName = QString("%1/Request_%2_%3.xml")
                                  .arg(pathPartProcessed, tcpSocket->peerAddress().toString(), currentUuid);
     QFile file(fileName);
@@ -138,24 +189,8 @@ void MESConnectorClient::onDataloopReply()
         return;
     }
 
-    XopconWriter writer(partIndentifier, XopconWriter::PartProcessed);
-    writer.setMeasureData(objNames, controlNames, measuredList);
-    // set xml location info
-    QSettings clientSettings("MesConnector", "Client");
-    writer.setLineNo(clientSettings.value("connection/mes/lineNo").toString());
-    writer.setStatNo(clientSettings.value("connection/mes/statNo").toString());
-    writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
-    writer.setFuNo(clientSettings.value("connection/mes/fuNo").toString());
-    writer.setWorkPos(clientSettings.value("connection/mes/workPos").toString());
-    writer.setToolPos(clientSettings.value("connection/mes/toolPos").toString());
-    writer.setProcessNo(clientSettings.value("connection/mes/processNo").toString());
-    writer.setProcessName(clientSettings.value("connection/mes/processName").toString());
-    writer.setApplication(clientSettings.value("connection/mes/application").toString());
-
-    writer.writeXmlData(&file);
-
-    file.seek(0);
-    sendRequest(&file);
+    file.write(buffer.buffer());
+    file.close();
 
     // update UI
     updateSystemLog(QString("Measurement data has been send to MES server, part identifier is %1").arg(partIndentifier));
@@ -204,6 +239,12 @@ void MESConnectorClient::loadSettings() {
 
     pathPartReceived = clientSettings.value("general/pathReceived").toString();
     pathPartProcessed = clientSettings.value("general/pathProcessed").toString();
+    if (!clientSettings.value("connection/mes/statNo").toString().isEmpty()) {
+        statNo = clientSettings.value("connection/mes/statNo").toString();
+    }
+    if (!clientSettings.value("connection/mes/processNo").toString().isEmpty()) {
+        processNo = clientSettings.value("connection/mes/processNo").toString();
+    }
 
     // Set language hot frash
     int lang = clientSettings.value("general/language").toInt();
@@ -234,6 +275,8 @@ void MESConnectorClient::loadSettings() {
     if (theme == QString("auto")) {
         qApp->styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
     }
+
+    updateGeometry();
 }
 
 void MESConnectorClient::updateUI()
@@ -261,7 +304,6 @@ void MESConnectorClient::startInspection()
 #ifdef NDEBUG
         QString macropath = QString("%1/mscl/FindInspectTemplate.pwmacro").arg(QDir::currentPath());
         qDebug() << macropath;
-        QMessageBox::information(this, QString("Path"), macropath);
 #else
         QDir dir(QDir::currentPath());
         dir.cd("../../../../");
@@ -270,7 +312,7 @@ void MESConnectorClient::startInspection()
 #endif
 
         polyworks = new PolyWorks();
-        QString argVar = QString("%1 %2 %3").arg(processNo, typeNo, partIndentifier);
+        QString argVar = QString("%1 %2 %3").arg(processNo.right(3), typeNo, partIndentifier);
         polyworks->scriptExecute(PolyWorks::MODULE_WORKSPACE,
                                  macropath.toStdWString().c_str(),
                                  argVar.toStdWString().c_str());
@@ -283,9 +325,33 @@ void MESConnectorClient::startInspection()
 
 bool MESConnectorClient::testDataloopConnection()
 {
-    dataloop = new DataLoop(this, dataloopEntry, dataloopToken);
+    if (!dataloop)
+        dataloop = new DataLoop(this, dataloopEntry, dataloopToken);
 
     QNetworkReply *reply = dataloop->testConnection();
+    reply->ignoreSslErrors();
+
+#if 0
+    QEventLoop loop;
+    connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+
+    reply->deleteLater();
+    auto error = reply->error();
+    if (QNetworkReply::NoError != error) {
+        updateSystemLog(QString("Network errror: %1").arg(reply->errorString()));
+        return false;
+    }
+
+    QByteArray read = reply->readAll();
+    if (read.isEmpty()) {
+        updateSystemLog(QString("Dataloop reply nothing"));
+        return false;
+    }
+    return true;
+#endif
+
+#if 1
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         quint32 dataloopResponseCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         QString dataloopConnection = 200 == dataloopResponseCode ? "Connected" : "Disconnected";
@@ -293,8 +359,8 @@ bool MESConnectorClient::testDataloopConnection()
 
         updateSystemLog(QString("DataLoop connection response code = %1").arg(dataloopResponseCode));
     });
-
     return true;
+#endif
 }
 
 void MESConnectorClient::sendMessage(QAnyStringView msg) {
@@ -361,12 +427,12 @@ bool MESConnectorClient::sendRequest(QIODevice *buffer)
     data.append(buffer->readAll());
     tcpSocket->write(data);
 
+    qDebug() << data;
+
 #ifdef DEBUG
     qDebug() << (quint32) (buffer->size() + 4);
     updateSystemLog(QString("Current data size is %1, real data size is %2").arg(dataSize).arg(data.size()));
 #endif
-
-    buffer->close();
 
     return true;
 }
@@ -412,12 +478,22 @@ void MESConnectorClient::on_btn_validate_clicked() {
     XopconWriter writer(partIndentifier, XopconWriter::PartRecevied);
     QSettings clientSettings("MesConnector", "Client");
     writer.setLineNo(clientSettings.value("connection/mes/lineNo").toString());
-    writer.setStatNo(clientSettings.value("connection/mes/statNo").toString());
+
+    if (!clientSettings.value("connection/mes/statNo").toString().isEmpty()) {
+        statNo = clientSettings.value("connection/mes/statNo").toString();
+    }
+    writer.setStatNo(statNo);
+
     writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
     writer.setFuNo(clientSettings.value("connection/mes/fuNo").toString());
     writer.setWorkPos(clientSettings.value("connection/mes/workPos").toString());
     writer.setToolPos(clientSettings.value("connection/mes/toolPos").toString());
-    writer.setProcessNo(clientSettings.value("connection/mes/processNo").toString());
+
+    if (!clientSettings.value("connection/mes/statNo").toString().isEmpty()) {
+        processNo = clientSettings.value("connection/mes/statNo").toString();
+    }
+    writer.setProcessNo(processNo);
+
     writer.setProcessName(clientSettings.value("connection/mes/processName").toString());
     writer.setApplication(clientSettings.value("connection/mes/application").toString());
 
@@ -447,6 +523,7 @@ void MESConnectorClient::on_btn_validate_clicked() {
         return;
     }
     file.write(buffer.buffer());
+    file.close();
 
     // udpate UI
     updateSystemLog("Send XML request to MES server");
@@ -475,7 +552,7 @@ void MESConnectorClient::on_btn_startInspect_clicked()
 
 void MESConnectorClient::on_btn_transmit_clicked()
 {
-    loadSettings();
+    // loadSettings();
 
     if (dataloopEntry.isEmpty() || dataloopToken.isEmpty()) {
         QMessageBox::warning(this,
@@ -483,45 +560,61 @@ void MESConnectorClient::on_btn_transmit_clicked()
                              QString("DataLoop entry or token don't setup correctly!"));
         return;
     }
-
     if (!dataloop)
         dataloop = new DataLoop(this, dataloopEntry, dataloopToken);
 
     partIndentifier = ui->combo_partList->currentText();
     partStatus = MESConnectorClient::PartProcessed;
     QNetworkReply *reply = dataloop->reqMeasureObjectByPieceID(ui->combo_partList->currentData().toString());
+    reply->ignoreSslErrors();
     connect(reply, &QNetworkReply::finished, this, &MESConnectorClient::onDataloopReply);
 }
 
 void MESConnectorClient::on_tab_inspection_currentChanged(int index)
 {
-    if (1 == index) {
-        if (!dataloop)
-            dataloop = new DataLoop(this, dataloopEntry, dataloopToken);
+    if (1 != index)
+        return;
 
-        QSettings clientSettings("MesConnector", "Client");
+    if (!dataloop)
+        dataloop = new DataLoop(this, dataloopEntry, dataloopToken);
 
-        QNetworkReply *reply = dataloop->reqPieceIDs(clientSettings.value("connection/mes/processNo").toString());
-        connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-            QByteArray data = reply->readAll();
-            QJsonDocument json = QJsonDocument::fromJson(data);
-            if (json.isEmpty() || json.isNull())
-                return;
+    QSettings clientSettings("MesConnector", "Client");
 
-            ui->combo_partList->clear();
-            QJsonArray jsonArray = json.object()["value"].toArray()[0].toObject()["inspectorPieces"].toArray();
-            for (const QJsonValueRef item : jsonArray) {
-                ui->combo_partList->addItem(item.toObject()["name"].toString(), item.toObject()["id"].toString());
-            }
-        });
-    }
+    QNetworkReply *reply = dataloop->reqPieceIDs(statNo);
+    reply->ignoreSslErrors();
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        QByteArray data = reply->readAll();
+        QJsonDocument json = QJsonDocument::fromJson(data);
+        if (json.isEmpty() || json.isNull())
+            return;
+
+        qDebug() << data;
+
+        auto value = json.object()["value"].toArray();
+        if (value.isEmpty()) {
+            updateSystemLog(QString("DataLoop don't find this project"));
+            return;
+        }
+
+        ui->combo_partList->clear();
+        QJsonArray jsonArray = value.at(0)
+                                   .toObject()["inspectorProjects"]
+                                   .toArray()[0]
+                                   .toObject()["inspectorPieces"]
+                                   .toArray();
+
+        for (const QJsonValueRef item : jsonArray) {
+            ui->combo_partList->addItem(item.toObject()["name"].toString(),
+                                        item.toObject()["id"].toString());
+        }
+    });
 }
 
 void MESConnectorClient::on_tab_connection_currentChanged(int index)
 {
-    if (1 == index) {
-        testDataloopConnection();
-    }
+    if (1 != index)
+        return;
+    testDataloopConnection();
 }
 
 void MESConnectorClient::on_btn_clearLog_clicked()
@@ -535,8 +628,24 @@ void MESConnectorClient::on_btn_copyLog_clicked()
     ui->clientLog->copy();
 }
 
-void MESConnectorClient::on_btn_connect_dataloop_clicked()
+void MESConnectorClient::on_checkAutoTransmit_checkStateChanged(const Qt::CheckState &arg1)
 {
-    testDataloopConnection();
-}
+    bool isAutoTransmit = ui->checkAutoTransmit->isChecked();
 
+    ui->combo_partList->setDisabled(isAutoTransmit);
+    ui->btn_transmit->setDisabled(isAutoTransmit);
+
+    if (isAutoTransmit) {
+        // Polling Thread
+        pollingThread = new QThread(this);
+        pollingTimer = new QTimer(nullptr);
+        pollingTimer->setInterval(5000);
+        pollingTimer->moveToThread(pollingThread);
+        connect(pollingThread, &QThread::started, pollingTimer, [&] { pollingTimer->start(); });
+        connect(pollingTimer, &QTimer::timeout, this, [] { qDebug() << "update"; });
+        pollingThread->start();
+    } else {
+        pollingThread->quit();
+        pollingThread->wait();
+    }
+}

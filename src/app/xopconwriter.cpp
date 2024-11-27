@@ -69,15 +69,16 @@ void XopconWriter::writeEvent()
 {
     xml.writeStartElement("event"_L1);
 
-    if (eventType == EventType::PartRecevied) {
-        xml.writeStartElement("partReceived"_L1);
-    } else if (eventType == EventType::PartProcessed) {
-        xml.writeStartElement("partProcessed"_L1);
-    }
+    xml.writeStartElement(EventType::PartRecevied == eventType ? "partReceived"_L1
+                                                               : "partProcessed"_L1);
 
     xml.writeAttribute("identifier"_L1, partId);
-    xml.writeAttribute("typeNo"_L1, ""_L1);
-    xml.writeAttribute("typeVar"_L1, ""_L1);
+
+    if (eventType == EventType::PartRecevied) {
+        xml.writeAttribute("typeNo"_L1, xmlPartTypeNo);
+        xml.writeAttribute("typeVar"_L1, xmlPartTypeVar);
+    }
+
     xml.writeEndElement();
 
     xml.writeEndElement();
@@ -87,17 +88,39 @@ void XopconWriter::writeBody()
 {
     xml.writeStartElement("body"_L1);
 
+    writeBodyStructs();
+
     if (m_objname.size()) {
         xml.writeStartElement("items"_L1);
         for (int i = 0; i < m_objname.size(); ++i) {
             xml.writeStartElement("item"_L1);
-            xml.writeAttribute("name"_L1, m_objname.at(i));
-            xml.writeAttribute("control"_L1, m_controlName.at(i));
+            xml.writeAttribute("name"_L1,
+                               QString("Result.HeightMeasurement.Distance.%1")
+                                   .arg(m_objname.at(i).split(u' ').join("")));
             xml.writeAttribute("value"_L1, QString("%1").arg(m_measureValue.at(i)));
+            xml.writeAttribute("dataType"_L1, "4");
             xml.writeEndElement();
         }
         xml.writeEndElement();
     }
 
+    xml.writeEndElement();
+}
+
+void XopconWriter::writeBodyStructs()
+{
+    if (EventType::PartProcessed != eventType) {
+        return;
+    }
+
+    xml.writeStartElement("structs"_L1);
+    xml.writeStartElement("resHead"_L1);
+
+    xml.writeAttribute("result"_L1, QString::number(1));
+    xml.writeAttribute("typeNo"_L1, xmlPartTypeNo);
+    xml.writeAttribute("typeVar"_L1, xmlPartTypeVar);
+    xml.writeAttribute("nioBits"_L1, QString::number(0));
+
+    xml.writeEndElement();
     xml.writeEndElement();
 }

@@ -29,7 +29,7 @@ version "6.0"
 #
 ############################### PARAMETERS ################################
 # [1][Input][string] project name (Possible Values: 620, 680)
-DECLARE inspectorName_ $1
+DECLARE workspaceName_ $1
 
 # [2][Input][string] inspector template name (Possible Values: A, B)
 DECLARE inspectorTemplate_ $2
@@ -43,7 +43,10 @@ DECLARE returnCode_ $4
 # [5][Output][String] Return Msg (Possible Values: "Successful")
 DECLARE returnMsg_ $5
 
-
+# FOR TEST
+#SET workspaceName_ "680"
+#SET inspectorTemplate_ "0452B37080"
+#SET partIdetifier_ "376W99000047926045B37080"
 
 
 ################################ SUBMACROS ################################
@@ -51,6 +54,7 @@ DECLARE returnMsg_ $5
 DECLARE dlInspectorProjectId
 DECLARE dlInspectorProjectName
 DECLARE dlInspectionTemplateId
+DECLARE dlInspectionTemplateName
 DECLARE dlObjectType
 DECLARE dlWorkspaceId
 DECLARE inspectorID
@@ -58,7 +62,7 @@ DECLARE inspectorID
 ################################## CODE ###################################
 
 # Check input argument
-IF NOT HAS_VALUE ( inspectorName_ ) OR NOT HAS_VALUE ( inspectorTemplate_ )
+IF NOT HAS_VALUE ( workspaceName_ ) OR NOT HAS_VALUE ( inspectorTemplate_ )
     SET returnCode_ 404
     SET returnMsg_ "Can't find the PolyWorks inspection project and/or piece template"
     
@@ -88,16 +92,17 @@ IF $connectionStatus != "On"
 ENDIF
 
 
-
-DATALOOP SEARCH ( "Inspector project", $inspectorName_, dlInspectorProjectId, "Exact Match")
-IF NOT HAS_VALUE ( dlInspectorProjectId )
+# Retrieve workspace id in dataloop by name
+DATALOOP SEARCH ( "Workspace", $workspaceName_, dlWorkspaceId, "Exact Match")
+IF NOT HAS_VALUE ( dlWorkspaceId )
     SET returnCode_ 403
-    SET returnMsg_ "Cannot find this project in DataLoop: ${inspectorName_}."    
+    SET returnMsg_ "Cannot find this project in DataLoop: ${workspaceName_}."    
     MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
     MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
     MACRO END ( "Error" )
 ENDIF
 
+# Retrieve template id in dataloop by name
 DATALOOP SEARCH ( "Inspector piece template", $inspectorTemplate_, dlInspectionTemplateId, "Exact Match" )
 IF NOT HAS_VALUE ( dlInspectionTemplateId )
     SET returnCode_ 403
@@ -107,12 +112,24 @@ IF NOT HAS_VALUE ( dlInspectionTemplateId )
     MACRO END ( "Error" )
 ENDIF
 
+# Find the template match the given workspace
+DECLARE iter 1
+DECLARE currentWorkspaceID
+WHILE $iter <= SIZE ( dlInspectionTemplateId )
+    # Retrieve project ID in Dataloop by template id
+    DATALOOP OBJECT INFO GET ( $dlInspectionTemplateId[$iter], dlInspectionTemplateName, dlObjectType, dlInspectorProjectId )
+    # Retrieve project name by project id in dataloop
+    DATALOOP OBJECT INFO GET ( $dlInspectorProjectId, dlInspectorProjectName, dlObjectType, currentWorkspaceID )
+    
+    IF $dlWorkspaceId == $currentWorkspaceID
+        BREAK
+    ENDIF    
+    ++iter
+ENDWHILE
 
-DATALOOP OBJECT INFO GET ( $dlInspectorProjectId, dlInspectorProjectName, dlObjectType, dlWorkspaceId )
+# Open project and create new piece with partIdentifier 
 DATALOOP WORKSPACE OPEN ( $dlWorkspaceId )
-
 MODULE POLYWORKS_INSPECTOR START USING_OBJECTS ( , $dlInspectorProjectName, inspectorID, "On", "Full" )
-
 MACRO EXEC REMOTE_COMMAND ( "PIECE NEW", $inspectorID, $partIdetifier_, $inspectorTemplate_  )
 
 SET returnCode_ 200

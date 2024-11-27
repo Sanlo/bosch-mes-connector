@@ -25,6 +25,7 @@ public:
     inline QString application() const { return this->xmlApplication; };
     inline QString partIdentifier() const { return this->xmlPartIdentifier; };
     inline quint32 returnCode() const { return this->xmlReturnCode; };
+    inline QString nextProcessNo() const { return this->xmlNextProcessNo; };
     inline QString partForStation() const { return this->xmlPartForStation; };
     inline QString typeNo() const { return this->xmlTypeNo; };
     inline QString typeVar() const { return this->xmlTypeVar; };
@@ -50,6 +51,7 @@ private:
     QString xmlPartIdentifier;
     quint32 xmlReturnCode = {0};
     // xml body.structs.workPart
+    QString xmlNextProcessNo;
     QString xmlPartForStation;
     QString xmlTypeNo;
     QString xmlTypeVar;

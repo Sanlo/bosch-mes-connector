@@ -105,7 +105,7 @@ void XopconReader::readBody() {
             if (xml.name() == "workPart"_L1) {
                 QString changeOver = xml.attributes().value("changeOver"_L1).toString();
                 QString identifier = xml.attributes().value("identifier"_L1).toString();
-                QString nextProcessNo = xml.attributes().value("nextProcessNo"_L1).toString();
+                xmlNextProcessNo = xml.attributes().value("nextProcessNo"_L1).toString();
                 xmlPartForStation = xml.attributes().value("partForStation"_L1).toString();
                 xmlTypeNo = xml.attributes().value("typeNo"_L1).toString();
                 xmlTypeVar = xml.attributes().value("typeVar"_L1).toString();
@@ -113,7 +113,7 @@ void XopconReader::readBody() {
                 QString batch = xml.attributes().value("batch"_L1).toString();
 
                 qDebug().noquote() << "Server Reply for Work Part:\n"
-                                   << changeOver << identifier << nextProcessNo << xmlPartForStation << xmlTypeNo
+                                   << changeOver << identifier << xmlNextProcessNo << xmlPartForStation << xmlTypeNo
                                    << xmlTypeVar << workingCode << batch;
             } else {
                 xml.skipCurrentElement();
