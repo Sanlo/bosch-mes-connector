@@ -16,7 +16,7 @@ public:
     explicit DataLoop(QObject *parent = nullptr, const QString &entry = "", const QString &token = "");
 
     QNetworkReply *testConnection();
-    QNetworkReply *reqPieceIDs(const QString &projectName);
+    QNetworkReply *reqPieceIDs(const QString &workspaceName);
     QNetworkReply *reqMeasureObjectByPieceID(const QString &pieceID);
 
     inline void setEntry(const QString &entry) { m_entry = entry; }

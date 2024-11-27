@@ -22,9 +22,10 @@ QNetworkReply *DataLoop::testConnection()
     return m_pAccessManger->get(*m_pRequest);
 }
 
-QNetworkReply *DataLoop::reqPieceIDs(const QString &projectName)
+QNetworkReply *DataLoop::reqPieceIDs(const QString &workspaceName)
 {
-    QUrl url(QString("%1/inspectorProjects?filter=name eq \'%2\'&expand=inspectorPieces").arg(m_entry, projectName));
+    QUrl url(QString("%1/Workspaces?$filter=name eq '%2'&$expand=inspectorProjects($expand=inspectorPieces)")
+                 .arg(m_entry, workspaceName));
 
     m_pRequest->setUrl(url);
     return m_pAccessManger->get(*m_pRequest);
@@ -35,6 +36,7 @@ QNetworkReply *DataLoop::reqMeasureObjectByPieceID(const QString &pieceID)
     if (pieceID.isEmpty())
         return nullptr;
 
+    qDebug() << pieceID;
     QUrl url(QString("%1/MeasurementObjects?$filter=inspectorPiece/id eq %2&$expand=controls").arg(m_entry, pieceID));
     m_pRequest->setUrl(url);
     return m_pAccessManger->get(*m_pRequest);
