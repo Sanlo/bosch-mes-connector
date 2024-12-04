@@ -33,8 +33,9 @@ bool PolyWorks::scriptExecute(ModuleType module, const OLECHAR *filePath, const 
 {
     long retVal;
     long plsSuccess;
-    if (ModuleType::MODULE_WORKSPACE == module && m_pWSMCommandCenter) {
-        // Run Workspace Manager Macro script file
+
+    switch (module) {
+    case ModuleType::MODULE_WORKSPACE:
         if (SUCCEEDED(m_pWSMCommandCenter->ScriptExecuteFromFile(filePath, arg, &retVal)) && (retVal == 1)) {
             long valIndex;
             m_pWSMCommandCenter->ScriptVariableGetNbValues(L"returnCode_", &valIndex);
@@ -50,8 +51,11 @@ bool PolyWorks::scriptExecute(ModuleType module, const OLECHAR *filePath, const 
                 m_returnMsg = str;
             }
             ::SysFreeString(str);
-            return true;
         }
+        break;
+    default:
+
+        break;
     }
 
     return true;

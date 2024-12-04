@@ -1,10 +1,4 @@
 version "6.0"
-#=======================================================
-# ---- InnovMetric Software Inc.
-# ---- Module  :    Workspace Manager
-# ---- Version :    2023 IR11.2 (build 5602)
-# ---- Date    :    Sunday, November 17, 2024 - 16:25:06
-#-------------------------------------------------------
 ############################### POLYWORKS #################################
 #
 # ---- InnovMetric Software Inc.
@@ -31,25 +25,35 @@ version "6.0"
 # [1][Input][string] project name (Possible Values: 620, 680)
 DECLARE workspaceName_ $1
 
-# [2][Input][string] inspector template name (Possible Values: A, B)
-DECLARE inspectorTemplate_ $2
+# [2][Input][String] Description (Possible Values:)
+DECLARE partIdentifier_ $2
 
 # [3][Input][String] Description (Possible Values:)
-DECLARE partIdetifier_ $3
+DECLARE statNo_ $3
 
-# [4][Output][Integer] Return Code (Possible Values: 200, 40x)
-DECLARE returnCode_ $4
+# [4][Input][String] Description (Possible Values:)
+DECLARE processNo_ $4
 
-# [5][Output][String] Return Msg (Possible Values: "Successful")
-DECLARE returnMsg_ $5
+# [5][Input][String] Description (Possible Values:)
+DECLARE typeNo_ $5
+
+# [6][Input][String] Description (Possible Values:)
+DECLARE typeVar_ $6
+
+# [7][Output][Integer] Return Code (Possible Values: 200, 40x)
+DECLARE returnCode_ $7
+
+# [8][Output][String] Return Msg (Possible Values: "Successful")
+DECLARE returnMsg_ $8
 
 # FOR TEST
 #SET workspaceName_ "680"
-#SET inspectorTemplate_ "0452B37080"
+#SET typeNo_ "0452B37080"
 #SET partIdetifier_ "376W99000047926045B37080"
 
 
 ################################ SUBMACROS ################################
+DECLARE pathCreatePieceWithProps "$0:h\CreateNewPieceWithProps.pwmacro"
 ############################# LOCAL VARIABLES #############################
 DECLARE dlInspectorProjectId
 DECLARE dlInspectorProjectName
@@ -57,19 +61,30 @@ DECLARE dlInspectionTemplateId
 DECLARE dlInspectionTemplateName
 DECLARE dlObjectType
 DECLARE dlWorkspaceId
+DECLARE templateName
 DECLARE inspectorID
 ############################# SHARED VARIABLES ############################
 ################################## CODE ###################################
 
+SET returnCode_ 200
+SET returnMsg_ "Start insection successful."
+
 # Check input argument
-IF NOT HAS_VALUE ( workspaceName_ ) OR NOT HAS_VALUE ( inspectorTemplate_ )
+IF NOT HAS_VALUE ( workspaceName_ ) OR NOT HAS_VALUE ( typeNo_ )
     SET returnCode_ 404
     SET returnMsg_ "Can't find the PolyWorks inspection project and/or piece template"
     
-    MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
-    MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+    MACRO OUTPUT_ARGUMENT ( 7, $returnCode_ )
+    MACRO OUTPUT_ARGUMENT ( 8, $returnMsg_ )
     MACRO END ( "Error" )
 ENDIF
+
+IF HAS_VALUE ( typeVar_ ) AND $typeVar_ != "00"
+    SET templateName "${typeNo_}_${typeVar_}" 
+ELSE
+    SET templateName $typeNo_
+ENDIF
+
 
 # Check Dataloop connection and try to login
 DECLARE connectionName
@@ -82,8 +97,8 @@ IF $connectionStatus != "On"
         SET returnCode_ 401
         SET returnMsg_ "Please finished the DataLoop connection parameter setup first."
         
-        MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
-        MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+        MACRO OUTPUT_ARGUMENT ( 7, $returnCode_ )
+        MACRO OUTPUT_ARGUMENT ( 8, $returnMsg_ )
         MACRO END ( "Error" )
     ENDIF
     
@@ -97,18 +112,18 @@ DATALOOP SEARCH ( "Workspace", $workspaceName_, dlWorkspaceId, "Exact Match")
 IF NOT HAS_VALUE ( dlWorkspaceId )
     SET returnCode_ 403
     SET returnMsg_ "Cannot find this project in DataLoop: ${workspaceName_}."    
-    MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
-    MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+    MACRO OUTPUT_ARGUMENT ( 7, $returnCode_ )
+    MACRO OUTPUT_ARGUMENT ( 8, $returnMsg_ )
     MACRO END ( "Error" )
 ENDIF
 
 # Retrieve template id in dataloop by name
-DATALOOP SEARCH ( "Inspector piece template", $inspectorTemplate_, dlInspectionTemplateId, "Exact Match" )
+DATALOOP SEARCH ( "Inspector piece template", $templateName, dlInspectionTemplateId, "Exact Match" )
 IF NOT HAS_VALUE ( dlInspectionTemplateId )
     SET returnCode_ 403
-    SET returnMsg_ "Cannot find this template in DataLoop: ${inspectorTemplate_}."
-    MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
-    MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+    SET returnMsg_ "Cannot find this template in DataLoop: ${templateName}."
+    MACRO OUTPUT_ARGUMENT ( 7, $returnCode_ )
+    MACRO OUTPUT_ARGUMENT ( 8, $returnMsg_ )
     MACRO END ( "Error" )
 ENDIF
 
@@ -129,11 +144,12 @@ ENDWHILE
 
 # Open project and create new piece with partIdentifier 
 DATALOOP WORKSPACE OPEN ( $dlWorkspaceId )
-MODULE POLYWORKS_INSPECTOR START USING_OBJECTS ( , $dlInspectorProjectName, inspectorID, "On", "Full" )
-MACRO EXEC REMOTE_COMMAND ( "PIECE NEW", $inspectorID, $partIdetifier_, $inspectorTemplate_  )
+MODULE POLYWORKS_INSPECTOR START USING_OBJECTS ( , $dlInspectorProjectName, inspectorID, "On", "Probing" )
+MACRO EXEC REMOTE_SCRIPT ( $pathCreatePieceWithProps, \
+    $inspectorID, $partIdentifier_, $statNo_, $processNo_, $typeNo_, $typeVar_, $templateName,\
+    returnCode_, returnMsg_ )
+MACRO EXEC REMOTE_SCRIPT WAIT_FOR_COMPLETION ( $inspectorID, 0 )
 
-SET returnCode_ 200
-SET returnMsg_ "Start insection successful."
-MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
-MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
 
+MACRO OUTPUT_ARGUMENT ( 7, $returnCode_ )
+MACRO OUTPUT_ARGUMENT ( 8, $returnMsg_ )

@@ -1,0 +1,87 @@
+version "6.0"
+############################### POLYWORKS #################################
+#
+# ---- InnovMetric Software Inc.
+# ---- Module  :    PolyWorks|Inspector
+# ---- Version :    2023 IR11.3
+# ---- Date    :    Dec,1 2024
+#
+############################### DISCLAIMER ################################
+#
+# This macro script is provided "AS IS", and may contain bugs, errors, and 
+# other problems that could cause system or other failures and data loss. 
+# InnovMetric Software Inc. disclaims any warranty or liability obligations 
+# of any kind to the user of this macro.
+#
+############################### DESCRIPTION ###############################
+#
+# 
+#
+################################ REVISION #################################
+#
+#
+#
+############################### PARAMETERS ################################
+# [1][Input][string] Description (Possible Values:)
+DECLARE partIdentfier_ $1
+
+# [2][Input][string] Description (Possible Values:)
+DECLARE statNo_ $2
+
+# [3][Input][string] Description (Possible Values:)
+DECLARE processNo_ $3
+
+# [4][Input][string] Description (Possible Values:)
+DECLARE typeNo_ $4
+
+# [5][Input][string] Description (Possible Values:)
+DECLARE typeVar_ $5
+
+# [6][Input][string] Description (Possible Values:)
+DECLARE templateName_ $6
+
+# [6][Output][Integer] Return Code (Possible Values: 200, 40x)
+DECLARE returnCode_ $7
+
+# [7][Output][String] Return Msg (Possible Values: "Successful")
+DECLARE returnMsg_ $8
+
+# FOR TEST
+#SET typeNo_ "0452B37080"
+SET templateName_ "0452B37080_03"
+
+################################ SUBMACROS ################################
+############################# LOCAL VARIABLES #############################
+DECLARE pieceName
+DECLARE currentPieceName
+DECLARE propsNames
+DECLARE error
+DECLARE errorMsg
+
+############################# SHARED VARIABLES ############################
+################################## CODE ###################################
+
+PIECE NEW ( , $templateName_ )
+MACRO GET_ERROR_STATUS ( error, errorMsg )
+IF $error == "Error"
+    SET returnCode_ 401
+    SET returnMsg_ $errorMsg
+    MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
+    MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+    MACRO END ( "Error" )
+ENDIF 
+
+#PIECE NEW INTERFACE ( pieceName )
+
+PIECE PROPERTIES CUSTOM ADD ( , "identifier", $partIdentfier_ )
+PIECE PROPERTIES CUSTOM ADD ( , "processNo", $processNo_ )
+PIECE PROPERTIES CUSTOM ADD ( , "statNo", $statNo_ )
+PIECE PROPERTIES CUSTOM ADD ( , "typeNo", $typeNo_ )
+PIECE PROPERTIES CUSTOM ADD ( , "typeVar", $typeVar_ )
+
+SET returnCode_ 200
+SET returnMsg_ "Start insection successful."
+MACRO OUTPUT_ARGUMENT ( 7, $returnCode_ )
+MACRO OUTPUT_ARGUMENT ( 8, $returnMsg_ )
+
+

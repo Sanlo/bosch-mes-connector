@@ -1,0 +1,74 @@
+version "6.0"
+############################### POLYWORKS #################################
+#
+# ---- InnovMetric Software Inc.
+# ---- Module  :    Workspace Manager
+# ---- Version :    2023 IR11.3
+# ---- Date    :    Nov 17, 24
+#
+############################### DISCLAIMER ################################
+#
+# This macro script is provided "AS IS", and may contain bugs, errors, and 
+# other problems that could cause system or other failures and data loss. 
+# InnovMetric Software Inc. disclaims any warranty or liability obligations 
+# of any kind to the user of this macro.
+#
+############################### DESCRIPTION ###############################
+#
+#
+#
+################################ REVISION #################################
+#
+#
+#
+############################### PARAMETERS ################################
+# [1][Input][string] user name (Possible Values: user)
+DECLARE useName_ $1
+
+# [2][Input][string] user pwd (Possible Values: pws)
+DECLARE usePwd_ $2
+
+# [3][Output][Integer] Return Code (Possible Values: 200, 40x)
+DECLARE returnCode_ $3
+
+# [4][Output][String] Return Msg (Possible Values: "Successful")
+DECLARE returnMsg_ $4
+
+################################ SUBMACROS ################################
+############################# LOCAL VARIABLES #############################
+DECLARE connectionName
+DECLARE connectionStatus
+DECLARE error
+DECLARE errorMsg
+############################# SHARED VARIABLES ############################
+################################## CODE ###################################
+
+
+DATALOOP OPTIONS MANAGE_POLYWORKS_DATA ( "On" )
+
+DATALOOP CONNECTED GET ( connectionStatus )
+IF $connectionStatus != "On"
+    DATALOOP CONNECTION ACTIVE GET ( connectionName )    
+    IF NOT HAS_VALUE ( connectionName )
+        SET returnCode_ 401
+        SET returnMsg_ "Please finished the DataLoop connection parameter setup first."        
+        MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
+        MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+        MACRO END ( "Error" )
+    ENDIF   
+    
+    DATALOOP LOG_IN ( $useName_, $usePwd_ )
+    MACRO GET_ERROR_STATUS ( error, errorMsg )
+    IF $error == "Error"
+        SET returnCode_ 400
+        SET returnMsg_ $errorMsg
+        MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
+        MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+        MACRO END ( "Error" )
+    ENDIF    
+ENDIF
+
+SET returnCode_ 200
+SET returnMsg_ "Login Dataloop successful."
+MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
+MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
