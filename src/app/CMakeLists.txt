@@ -12,14 +12,16 @@ include_directories(
 
 set(TS_FILES MesConnector_zh_CN.ts)
 
-# set(PROJECT_SOURCES main.cpp mesconnectorclient.cpp mesconnectorclient.h
-# settings.cpp settings.h settings.ui mesconnectorclient.ui xopconwriter.h
-# xopconwriter.cpp ${TS_FILES})
+set(QRC_FILES mscconnector.qrc)
+
+set(WINRC_FILES Resource.rc)
 
 qt_add_executable(
   MesConnector
   MANUAL_FINALIZATION
   ${TS_FILES}
+  ${QRC_FILES}
+  ${WINRC_FILES}
   main.cpp
   mesconnectorclient.cpp
   mesconnectorclient.h
@@ -27,13 +29,13 @@ qt_add_executable(
   settings.h
   settings.ui
   mesconnectorclient.ui
-  xopconwriter.h
-  xopconwriter.cpp
-  xopconreader.h
-  xopconreader.cpp
   mscconnector.qrc
-  polyworks.h
+  xopconwriter.cpp
+  xopconwriter.h
+  xopconreader.cpp
+  xopconreader.h
   polyworks.cpp
+  polyworks.h
   dataloop.h
   dataloop.cpp)
 qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
