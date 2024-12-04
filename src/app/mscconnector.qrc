@@ -2,8 +2,9 @@
     <qresource prefix="/">
         <file>img/Polyworks.ico</file>
         <file>img/check_green.svg</file>
-        <file>img/bosch.svg</file>
         <file>img/Bosch-logo.png</file>
         <file>MesConnector_zh_CN.qm</file>
+        <file>img/bosch.png</file>
+        <file>img/logo.ico</file>
     </qresource>
 </RCC>
