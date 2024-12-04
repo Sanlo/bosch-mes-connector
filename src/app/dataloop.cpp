@@ -22,10 +22,11 @@ QNetworkReply *DataLoop::testConnection()
     return m_pAccessManger->get(*m_pRequest);
 }
 
-QNetworkReply *DataLoop::reqPieceIDs(const QString &workspaceName)
+QNetworkReply *DataLoop::reqPieceIDs(const QString &partIdentifier)
 {
-    QUrl url(QString("%1/Workspaces?$filter=name eq '%2'&$expand=inspectorProjects($expand=inspectorPieces)")
-                 .arg(m_entry, workspaceName));
+    QUrl url(
+        QString("%1/inspectorPieces?$filter=userProperties/identifier eq '%2'&$orderby=creationDateUser desc&$top=1")
+            .arg(m_entry, partIdentifier));
 
     m_pRequest->setUrl(url);
     return m_pAccessManger->get(*m_pRequest);
