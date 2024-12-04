@@ -2,6 +2,19 @@
 #define XOPCONWRITER_H
 
 #include <QXmlStreamWriter>
+#include "xopconreader.h"
+
+struct TotalHeightStack
+{
+    TotalHeightStack(const QString &name_, double_t value_, size_t dataType_ = 4)
+        : name(name_)
+        , value(value_)
+        , dataType(dataType_)
+    {}
+    QString name;
+    double_t value;
+    size_t dataType;
+};
 
 class XopconWriter
 {
@@ -25,6 +38,7 @@ public:
     inline QString application() const { return this->xmlApplication; }
     inline QString typeNo() const { return this->xmlPartTypeNo; }
     inline QString typeVar() const { return this->xmlPartTypeVar; }
+    inline QList<Norminal> norminalArray() const { return this->xmlNorminal; }
     // Setter
     inline void setLineNo(const QString &str) { xmlLineNo = str; }
     inline void setStatNo(const QString &str) { xmlStatNo = str; }
@@ -37,6 +51,7 @@ public:
     inline void setApplication(const QString &str) { xmlApplication = str; }
     inline void setTypeNo(const QString &str) { xmlPartTypeNo = str; }
     inline void setTypeVar(const QString &str) { xmlPartTypeVar = str; }
+    inline void setNorminalArray(const QList<Norminal> &list) { xmlNorminal = list; }
 
     inline void setMeasureData(QStringList objName, QStringList controlName, QList<double> measureValue)
     {
@@ -51,6 +66,8 @@ private:
     void writeEvent();
     void writeBody();
     void writeBodyStructs();
+    void writeBodyStructArray();
+    void writeBodyItems();
 
     QXmlStreamWriter xml;
 
@@ -71,10 +88,20 @@ private:
     QString xmlPartTypeNo;
     QString xmlPartTypeVar;
 
+    // xml body.structArray
+    QList<Norminal> xmlNorminal;
+
     // measurement items
     QStringList m_objname;
     QStringList m_controlName;
     QList<double> m_measureValue;
+
+private:
+    // xml body.structs for partProcessed
+    quint32 xmlNoiBits{0};
+    quint32 xmlResult{1};
+    // measurement total height stack
+    QList<TotalHeightStack *> m_TotalHeightStacks;
 };
 
 #endif // XOPCONWRITER_H

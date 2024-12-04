@@ -45,13 +45,11 @@ QString XopconReader::errorString() const {
 
 void XopconReader::readHeader() {
     Q_ASSERT(xml.isStartElement() && xml.name() == "header"_L1);
-
     // Read Header Attribute
     xmlEventId = xml.attributes().value("eventId").toString();
     xmlEventName = xml.attributes().value("eventName").toString();
-
-    qDebug() << "eventId: " << xmlEventId << "eventName: " << xmlEventName;
-
+    xmlTimeStamp = xml.attributes().value("timeStamp").toString();
+    qDebug() << "eventId: " << xmlEventId << "eventName: " << xmlEventName << "time stamp" << xmlTimeStamp;
     // Read Location Element
     while (xml.readNextStartElement()) {
         if (xml.name() == "location") {
@@ -64,7 +62,7 @@ void XopconReader::readHeader() {
             QString toolPos = xml.attributes().value("toolPos").toString();
             xmlProcessNo = xml.attributes().value("processNo").toString();
             QString processName = xml.attributes().value("processName").toString();
-            xmlApplication = xml.attributes().value("application").toString();
+            xmlApplication = xml.attributes().value("application").toString();            
 
             qDebug() << "lineNo: " << xmlLineNo << "statNo: " << xmlStatNo << "statIdx: " << xmlStatIdx
                      << "fuNo: " << fuNo << "workPos: " << workPos << "toolPos: " << toolPos
@@ -98,8 +96,7 @@ void XopconReader::readBody() {
     Q_ASSERT(xml.isStartElement() && xml.name() == "body"_L1);
     while (xml.readNextStartElement()) {
         if (xml.name() == "items"_L1) {
-            // TODO: Read Items
-            xml.skipCurrentElement();
+            readBodyItems();
         } else if (xml.name() == "structs"_L1) {
             xml.readNextStartElement();
             if (xml.name() == "workPart"_L1) {
@@ -120,4 +117,38 @@ void XopconReader::readBody() {
             }
         }
     }
+}
+
+void XopconReader::readBodyItems()
+{
+    Q_ASSERT(xml.isStartElement() && xml.name() == "items"_L1);
+
+    int objIdx{-1};
+    double lTol;
+    double uTol;
+    while (xml.readNextStartElement()) {
+        if (xml.name() == "item"_L1) {
+            auto names = xml.attributes().value("name").split(u'.');
+            auto idx = names.at(0).split(u'[').at(1).split(u']', Qt::SkipEmptyParts).at(0).toInt();
+            QString strTol = names.at(1).toString();
+            if ("LowerTolerance" == strTol) {
+                lTol = xml.attributes().value("value").toDouble();
+            } else {
+                uTol = xml.attributes().value("value").toDouble();
+            }
+
+            if (idx == objIdx) {
+                xmlNorminal.append(Norminal(idx, lTol, uTol));
+            } else {
+                objIdx = idx;
+            }
+        }
+
+        xml.skipCurrentElement();
+    }
+}
+
+bool XopconReader::isValidProcess(const QString &process) const
+{
+    return availableProcesses.contains(process);
 }
