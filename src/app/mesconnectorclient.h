@@ -5,6 +5,9 @@
 #include <QNetworkAccessManager>
 #include <QTcpSocket>
 
+#include "xopconreader.h"
+#include "xopconwriter.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MESConnectorClient;
@@ -25,6 +28,7 @@ public:
     enum EventType {
         PartRecevied,
         PartProcessed,
+        Waiting,
     };
     MESConnectorClient(QWidget *parent = nullptr);
     ~MESConnectorClient();
@@ -32,17 +36,16 @@ public:
 private slots:
     void onServerReply();
     void onDataloopReply();
+    void onAutoTransmit();
     void displayError(QAbstractSocket::SocketError socketError);
+    void displayPolyworksError(int errorCode, const QString &errorMsg);
 
     void on_btn_settings_clicked();
-    void on_btn_connect_mes_clicked();
     void on_btn_validate_clicked();
-    void on_btn_disconnect_mes_clicked();
     void on_edit_partID_textChanged(const QString &arg1);
     void on_btn_startInspect_clicked();
     void on_btn_transmit_clicked();
     void on_tab_inspection_currentChanged(int index);
-    void on_tab_connection_currentChanged(int index);
     void on_btn_clearLog_clicked();
     void on_btn_copyLog_clicked();
     void on_checkAutoTransmit_checkStateChanged(const Qt::CheckState &arg1);
@@ -54,18 +57,27 @@ private:
     quint32 mesPort;
     QString dataloopEntry;
     QString dataloopToken;
+    QString dataloopUser;
+    QString dataloopPwd;
 
     QString pathPartReceived;
     QString pathPartProcessed;
     EventType partStatus;
     QString currentUuid;
-    QString partIndentifier;
+    QString partIdentifier;
     QString statNo = "680";
     QString processNo = "38213680";
     QString typeNo = "0452B37080";
     QString typeVar = "00";
+    QString receivedDateTime;
+    QList<Norminal> nornimalArray;
 
     QTcpSocket *tcpSocket = nullptr;
+    const int HEADER_SIZE = sizeof(qint32);
+    QByteArray buffer;
+    qint32 bodySize;
+    bool readingHeader;
+
     QNetworkAccessManager *networkManager = nullptr;
     DataLoop *dataloop = nullptr;
     PolyWorks *polyworks = nullptr;
@@ -75,7 +87,6 @@ private:
     void loadSettings();
     void updateUI();
     void startInspection();
-    bool testDataloopConnection();
     void updateSystemLog(const QString &msg);
     void sendMessage(QAnyStringView msg = nullptr);
     bool sendRequest(QIODevice *buffer);

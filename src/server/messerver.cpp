@@ -14,8 +14,8 @@ MesServer::MesServer(QWidget *parent)
 {
     ui->setupUi(this);
 
-    PATH_PART_PROCESSED = QString("%1/Documents/GitHub/boschData/partProcessed").arg(QDir::homePath());
-    PATH_PART_RECEVIED = QString("%1/Documents/GitHub/boschData/partRecevied").arg(QDir::homePath());
+    PATH_PART_PROCESSED = QString("%1/Documents/GitHub/bosch-mes-connector/BoschXML/partProcessed").arg(QDir::homePath());
+    PATH_PART_RECEVIED = QString("%1/Documents/GitHub/bosch-mes-connector/BoschXML/partRecevied").arg(QDir::homePath());
     qDebug() << PATH_PART_PROCESSED;
     qDebug() << PATH_PART_RECEVIED;
 }
@@ -70,10 +70,9 @@ void MesServer::sendReply()
         return;
     }
 
-    QString filePath
-        = (int) XopconReader::PartRecevied == currentEvent
-              ? QString("%1/Response_10.179.90.149_46635c0a-fabe-4bc4-a0ca-0184bd1496f5_IO.xml").arg(PATH_PART_RECEVIED)
-              : QString("%1/Response_10.179.90.149_46635c0a-fabe-4bc4-a0ca-0184bd1496f5_IO.xml").arg(PATH_PART_PROCESSED);
+    QString filePath = (int) XopconReader::PartRecevied == currentEvent
+                           ? QString("%1/Response_template_IO.xml").arg(PATH_PART_RECEVIED)
+                           : QString("%1/Response_template_IO.xml").arg(PATH_PART_PROCESSED);
     QFile file(filePath);
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -87,28 +86,39 @@ void MesServer::sendReply()
     std::reverse(size.begin(), size.end());
     data.append(size);
     data.append(file.read(file.size()));
-    clientSocket->write(data);
+
+    qint64 bytesWrite{0};
+    while (bytesWrite < dataSize) {
+        QByteArray byteToWrite = data.mid(bytesWrite, 1024);
+        bytesWrite += clientSocket->write(byteToWrite, byteToWrite.size());
+    }
 }
 
 void MesServer::readSocket()
 {
-    QBuffer buffer;
-    buffer.setData(clientSocket->readAll());
-    buffer.open(QBuffer::ReadWrite);
+    const quint32 bufferSize = qFromBigEndian<quint32>(clientSocket->read(4)) - sizeof(quint32);
+    size_t bytesRead{0};
+    QByteArray body;
 
-    const quint32 bufferSize = qFromBigEndian<quint32>(buffer.read(sizeof(quint32)));
+    qDebug() << bufferSize;
+
+    while (bytesRead < bufferSize) {
+        QByteArray data = clientSocket->read(bufferSize - bytesRead);
+        bytesRead += data.size();
+        body.append(data);
+    }
 
     updateSystemLog(QString("Client send a xml file. Size: %1.").arg(bufferSize));
 
     // save buffer to local file for debug
-    QString pathRequest = QString("%1/Documents/GitHub/boschData/serverData").arg(QDir::homePath());
+    QString pathRequest = QString("%1/Documents/GitHub/bosch-mes-connector/BoschXML/serverData").arg(QDir::homePath());
     const QString fileName = QString("%1/Request_%2_%3.xml")
                                  .arg(pathRequest,
                                       clientSocket->peerAddress().toString(),
                                       QUuid::createUuid().toString(QUuid::WithoutBraces));
     QFile file(fileName);
     if (file.open(QIODevice::ReadWrite | QIODevice::Text)) {
-        file.write(buffer.data().mid(sizeof(quint32)));
+        file.write(body);
     }
     file.seek(0);
 
@@ -124,8 +134,6 @@ void MesServer::readSocket()
 
     currentEvent = (int) ("partReceived" == reader.eventName() ? XopconReader::PartRecevied
                                                                : XopconReader::PartProcessed);
-
-    file.close();
 
     // send client the server reply
     sendReply();

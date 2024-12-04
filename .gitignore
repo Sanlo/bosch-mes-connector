@@ -56,3 +56,6 @@ compile_commands.json
 
 # Custom
 /build
+/packaging
+
+RC*

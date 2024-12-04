@@ -43,6 +43,8 @@ void Settings::on_btn_settingsApply_clicked()
     clientSettings.setValue("connection/mesPort", ui->edit_mesPort->text());
     clientSettings.setValue("connection/dlapi", ui->edit_dlAPI->text());
     clientSettings.setValue("connection/dlToken", ui->edit_dlToken->text());
+    clientSettings.setValue("connection/dluser", ui->edit_dluser->text());
+    clientSettings.setValue("connection/dlpwd", ui->edit_dlpwd->text());
 
     // workstation infomation
     clientSettings.setValue("connection/mes/lineNo", ui->edit_mes_lineNo->text());
@@ -71,7 +73,26 @@ void Settings::loadSettings()
     if (theme == QString("auto")) {
         ui->radio_auto->setChecked(true);
     }
-    ui->combo_language->setCurrentIndex(clientSettings.value("general/language").toInt());
+
+    int langIdx = clientSettings.value("general/language").toInt();
+    ui->combo_language->setCurrentIndex(langIdx);
+    QTranslator translator;
+    const QStringList uiLanguages = QLocale::system().uiLanguages();
+    if (1 == langIdx && translator.load(":/MesConnector_zh_CN.qm")) {
+        qApp->installTranslator(&translator);
+        ui->retranslateUi(this);
+    } else {
+        for (const QString &locale : uiLanguages) {
+            const QString baseName = "MesConnector_" + QLocale(locale).name();
+            if (translator.load(":/i18n/" + baseName)) {
+                qDebug() << baseName;
+                qApp->installTranslator(&translator);
+                break;
+            }
+        }
+        ui->retranslateUi(this);
+    }
+
     ui->edit_path_recevied->setText(clientSettings.value("general/pathReceived").toString());
     ui->edit_path_processed->setText(clientSettings.value("general/pathProcessed").toString());
 
@@ -80,6 +101,8 @@ void Settings::loadSettings()
     ui->edit_mesPort->setText(clientSettings.value("connection/mesPort").toString());
     ui->edit_dlAPI->setText(clientSettings.value("connection/dlapi").toString());
     ui->edit_dlToken->setText(clientSettings.value("connection/dlToken").toString());
+    ui->edit_dluser->setText(clientSettings.value("connection/dluser").toString());
+    ui->edit_dlpwd->setText(clientSettings.value("connection/dlpwd").toString());
 
     // retrieve workstation settings
     ui->edit_mes_lineNo->setText(clientSettings.value("connection/mes/lineNo").toString());
