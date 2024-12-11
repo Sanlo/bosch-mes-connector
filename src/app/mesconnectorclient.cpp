@@ -141,8 +141,18 @@ void MESConnectorClient::onServerReply()
     }
 
     // Retrive response data from server reply
+    if (0 != xopconReader.returnCode()) {
+        updateSystemLog(QString("Mes Server return error for request. Code:-1"));
+        return;
+    }
     processNo = xopconReader.nextProcessNo();
-    statNo = processNo.right(3);
+
+    if (processNo.right(3).isEmpty()) {
+        statNo = "680";
+    } else {
+        statNo = processNo.right(3);
+    }
+
     typeNo = xopconReader.typeNo();
     typeVar = xopconReader.typeVar();
     nornimalArray = xopconReader.norminalArray();
@@ -296,8 +306,6 @@ void MESConnectorClient::onAutoTransmit()
             return;
         }
 
-        QString pieceID = value.at(0).toObject()["id"].toString();
-
         QDateTime pieceDateTime = QDateTime::fromString(value.at(0).toObject()["creationDateUser"].toString(),
                                                         Qt::ISODateWithMs);
         pieceDateTime.setTimeZone(QTimeZone::utc());
@@ -307,7 +315,15 @@ void MESConnectorClient::onAutoTransmit()
             return;
         }
 
+        // set part status for send xml to bosch server
         partStatus = MESConnectorClient::PartProcessed;
+
+        // retreive piece id and filled to combolist
+        QString pieceID = value.at(0).toObject()["id"].toString();
+        ui->combo_partList->clear();
+        ui->combo_partList->addItem(partIdentifier, pieceID);
+
+        // retreive measurement object with current piece id
         QNetworkReply *reply = dataloop->reqMeasureObjectByPieceID(pieceID);
         reply->ignoreSslErrors();
         connect(reply, &QNetworkReply::finished, this, &MESConnectorClient::onDataloopReply);
@@ -424,6 +440,7 @@ void MESConnectorClient::updateUI()
     ui->link_bosch->setAutoFillBackground(true);
     ui->link_bosch->setPixmap(bosch);
     ui->btn_validate->setDisabled(true);
+    ui->btn_transmit->setDisabled(true);
     ui->edit_partID->setFocus();
     ui->tab_inspection->setCurrentIndex(0);
     ui->label_status_partvalidation->setText(tr("Waiting for user input.\nPlease scan part ID with BAR scanner"));
@@ -560,13 +577,14 @@ void MESConnectorClient::on_btn_validate_clicked() {
     }
 
     // check if socket available
-    if (!tcpSocket->isOpen()) {
+    if (QAbstractSocket::ConnectedState != tcpSocket->state()) {
         tcpSocket->abort();
         tcpSocket->connectToHost(mesIP, mesPort);
-        if (!tcpSocket->waitForConnected()) {
-            QMessageBox::warning(this,
-                                 QString("MES Connector Client"),
-                                 tr("ERROR: Can't build connection with Bosch MES Server"));
+
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        bool isConnect = tcpSocket->waitForConnected();
+        QApplication::restoreOverrideCursor();
+        if (!isConnect) {
             return;
         }
         updateSystemLog(QString("Successful connect to MES server %1:%2")
@@ -585,6 +603,7 @@ void MESConnectorClient::on_btn_validate_clicked() {
     if (!clientSettings.value("connection/mes/statNo").toString().isEmpty()) {
         statNo = clientSettings.value("connection/mes/statNo").toString();
     }
+
     writer.setStatNo(statNo);
     writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
     writer.setFuNo(clientSettings.value("connection/mes/fuNo").toString());
@@ -632,6 +651,8 @@ void MESConnectorClient::on_btn_validate_clicked() {
     ui->label_status_partvalidation->setText(tr("ID:%1 is recevied").arg(partIdentifier));
     ui->edit_partID->setText("");
     ui->btn_validate->setDisabled(true);
+    ui->combo_partList->clear();
+    ui->btn_transmit->setDefault(true);
 
     updateGeometry();
 }
@@ -701,8 +722,18 @@ void MESConnectorClient::on_tab_inspection_currentChanged(int index)
         }
 
         ui->combo_partList->clear();
+
+        QDateTime pieceDateTime = QDateTime::fromString(value.at(0).toObject()["creationDateUser"].toString(),
+                                                        Qt::ISODateWithMs);
+        pieceDateTime.setTimeZone(QTimeZone::utc());
+        QDateTime pieceDateTimeLocal = pieceDateTime.toLocalTime();
+        if (pieceDateTimeLocal < QDateTime::fromString(receivedDateTime, Qt::ISODateWithMs)) {
+            return;
+        }
+
         QString pieceID = value.at(0).toObject()["id"].toString();
         ui->combo_partList->addItem(partIdentifier, pieceID);
+        ui->btn_transmit->setEnabled(true);
 
     });
 }
