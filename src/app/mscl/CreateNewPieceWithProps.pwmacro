@@ -66,8 +66,8 @@ MACRO GET_ERROR_STATUS ( error, errorMsg )
 IF $error == "Error"
     SET returnCode_ 401
     SET returnMsg_ $errorMsg
-    MACRO OUTPUT_ARGUMENT ( 4, $returnCode_ )
-    MACRO OUTPUT_ARGUMENT ( 5, $returnMsg_ )
+    MACRO OUTPUT_ARGUMENT ( 7, $returnCode_ )
+    MACRO OUTPUT_ARGUMENT ( 8, $returnMsg_ )
     MACRO END ( "Error" )
 ENDIF 
 
