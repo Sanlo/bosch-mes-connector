@@ -214,57 +214,7 @@ void MESConnectorClient::onDataloopReply()
         }
     }
 
-    // 1. generate XML request file with part id and system info
-    QBuffer buffer;
-    buffer.open(QBuffer::ReadWrite);
-    XopconWriter writer(partIdentifier, XopconWriter::PartProcessed);
-    writer.setMeasureData(objNames, controlNames, measuredList);
-    // set xml location info
-    QSettings clientSettings("MesConnector", "Client");
-    writer.setLineNo(clientSettings.value("connection/mes/lineNo").toString());
-    writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
-    writer.setFuNo(clientSettings.value("connection/mes/fuNo").toString());
-    writer.setWorkPos(clientSettings.value("connection/mes/workPos").toString());
-    writer.setToolPos(clientSettings.value("connection/mes/toolPos").toString());
-    writer.setProcessName(clientSettings.value("connection/mes/processName").toString());
-    writer.setApplication(clientSettings.value("connection/mes/application").toString());
-
-    writer.setStatNo(statNo);
-    writer.setProcessNo(processNo);
-    // set xml event data
-    writer.setTypeNo(typeNo);
-    writer.setTypeVar(typeVar);
-    // set xml body struct
-    if (objNames.size() == (nornimalArray.size() - 2)) {
-        writer.setNorminalArray(nornimalArray);
-    }
-
-    writer.writeXmlData(&buffer);
-
-    // 2. send request file to mes server
-    buffer.seek(0);
-    if (!sendRequest(&buffer)) {
-        updateSystemLog("Cannot build communications with MES server");
-        return;
-    }
-
-    // write Request file to local for debug
-    if (!pathPartReceived.isEmpty() && !pathPartProcessed.isEmpty()) {
-        if (currentUuid.isEmpty())
-            currentUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
-        const QString fileName = QString("%1/Request_%2_%3.xml")
-                                     .arg(pathPartProcessed, tcpSocket->peerAddress().toString(), currentUuid);
-        QFile file(fileName);
-        if (!file.open(QFile::ReadWrite | QFile::Text)) {
-            QMessageBox::warning(this,
-                                 QString("MES Connector Client"),
-                                 tr("Cannot write file %1:\n%2")
-                                     .arg(QDir::toNativeSeparators(fileName), file.errorString()));
-            return;
-        }
-
-        file.write(buffer.buffer());
-    }
+    generateRequest(partIdentifier, statNo, MESConnectorClient::PartProcessed, objNames, controlNames, measuredList);
 
     // update UI
     updateSystemLog(QString("Measurement data has been send to MES server, part identifier is %1").arg(partIdentifier));
@@ -548,9 +498,14 @@ bool MESConnectorClient::sendRequest(QIODevice *buffer)
 }
 
 void MESConnectorClient::generateRequest(
-    const QString &partId, const QString &statNo)
+    const QString &partId,
+    const QString &statNo,
+    EventType event,
+    const QStringList &objNames_,
+    const QStringList &controlNames_,
+    const QList<double> &measuredList_)
 {
-    XopconWriter writer(partId, XopconWriter::PartRecevied);
+    XopconWriter writer(partId, (XopconWriter::EventType) event);
     QSettings clientSettings("MesConnector", "Client");
     writer.setLineNo(clientSettings.value("connection/mes/lineNo").toString());
     writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
@@ -568,6 +523,13 @@ void MESConnectorClient::generateRequest(
     writer.setTypeNo(typeNo);
     writer.setTypeVar(typeVar);
 
+    if (MESConnectorClient::PartProcessed == event) {
+        writer.setMeasureData(objNames_, controlNames_, measuredList_);
+        if (objNames_.size() == (nornimalArray.size() - 2)) {
+            writer.setNorminalArray(nornimalArray);
+        }
+    }
+
     QBuffer buffer;
     buffer.open(QBuffer::ReadWrite);
     if (writer.writeXmlData(&buffer)) {
@@ -583,9 +545,15 @@ void MESConnectorClient::generateRequest(
 
     // write Request file to local for debug
     if (!pathPartReceived.isEmpty() && !pathPartProcessed.isEmpty()) {
-        currentUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QString filePath;
+        if (MESConnectorClient::PartRecevied == event) {
+            currentUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+            filePath = pathPartReceived;
+        } else {
+            filePath = pathPartProcessed;
+        }
         const QString fileName = QString("%1/Request_%2_%3.xml")
-                                     .arg(pathPartReceived, tcpSocket->peerAddress().toString(), currentUuid);
+                                     .arg(filePath, tcpSocket->peerAddress().toString(), currentUuid);
 
         QFile file(fileName);
         if (!file.open(QFile::WriteOnly | QFile::Text)) {

@@ -90,6 +90,11 @@ private:
     void updateSystemLog(const QString &msg);
     void sendMessage(QAnyStringView msg = nullptr);
     bool sendRequest(QIODevice *buffer);
-    void generateRequest(const QString &partId, const QString &statNo);
+    void generateRequest(const QString &partId,
+                         const QString &statNo,
+                         EventType event = EventType::PartRecevied,
+                         const QStringList &objNames_ = QStringList(),
+                         const QStringList &controlNames_ = QStringList(),
+                         const QList<double> &measuredList = QList<double>());
 };
 #endif // MESCONNECTORCLIENT_H
