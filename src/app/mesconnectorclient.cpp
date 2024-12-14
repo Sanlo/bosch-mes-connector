@@ -145,43 +145,32 @@ void MESConnectorClient::onServerReply()
         updateSystemLog(QString("Mes Server return error for request. Code:-1"));
         return;
     }
-    processNo = xopconReader.nextProcessNo();
-
-    if (processNo.right(3).isEmpty()) {
-        statNo = "680";
-    } else {
-        statNo = processNo.right(3);
-    }
-
-    typeNo = xopconReader.typeNo();
-    typeVar = xopconReader.typeVar();
-    nornimalArray = xopconReader.norminalArray();
-    receivedDateTime = xopconReader.timeStamp();
-
-    QSettings clientSettings("MesConnector", "Client");
-    clientSettings.setValue("connection/mes/statNo", statNo);
-    clientSettings.setValue("connection/mes/processNo", processNo);
 
     // 5. respond to the result
     switch (partStatus) {
     case MESConnectorClient::PartRecevied:
         // post process for part recevied
+        processNo = xopconReader.nextProcessNo();
+        if (processNo.isEmpty() || statNo != processNo.right(3)) {
+            statNo = processNo.right(3);
+            generateRequest(partIdentifier, statNo);
+            break;
+        }
+
+        typeNo = xopconReader.typeNo();
+        typeVar = xopconReader.typeVar();
+        nornimalArray = xopconReader.norminalArray();
+        receivedDateTime = xopconReader.timeStamp();
+
         if (!xopconReader.isValidProcess(processNo)) {
-            QString content
-                = tr("Part ID:%1, Bosch MES server reply process ID:%2 isn't suitable for measurement " "here\nDo you " "still want to " "try " "measuring?")
-                      .arg(partIdentifier, processNo);
-            auto userSelection = QMessageBox::question(this,
-                                                       QString("MES Connector Client"),
-                                                       content,
-                                                       QMessageBox::Ok | QMessageBox::No,
-                                                       QMessageBox::Ok);
-            if (QMessageBox::No == userSelection) {
-                return;
-            }
+            QString content = tr("Part ID:%1, Bosch MES server reply process ID:%2 isn't suitable for measurement here")
+                                  .arg(partIdentifier, processNo);
+            QMessageBox::warning(this, QString("MES Connector Client"), content);
+            break;
         }
 
         updateSystemLog(
-            tr("PartID: %1, partForStation: %2, typeNo: %3, typeVar: %4.\nValidate part and start Polyworks")
+            tr("Server reply for PartID: %1: partForStation: %2, typeNo: %3, typeVar: %4.\nValidate part " "and start " "Polyworks")
                 .arg(partIdentifier, xopconReader.partForStation(), typeNo, typeVar));
 
         startInspection();
@@ -239,6 +228,7 @@ void MESConnectorClient::onDataloopReply()
     writer.setToolPos(clientSettings.value("connection/mes/toolPos").toString());
     writer.setProcessName(clientSettings.value("connection/mes/processName").toString());
     writer.setApplication(clientSettings.value("connection/mes/application").toString());
+
     writer.setStatNo(statNo);
     writer.setProcessNo(processNo);
     // set xml event data
@@ -557,6 +547,58 @@ bool MESConnectorClient::sendRequest(QIODevice *buffer)
     return true;
 }
 
+void MESConnectorClient::generateRequest(
+    const QString &partId, const QString &statNo)
+{
+    XopconWriter writer(partId, XopconWriter::PartRecevied);
+    QSettings clientSettings("MesConnector", "Client");
+    writer.setLineNo(clientSettings.value("connection/mes/lineNo").toString());
+    writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
+    writer.setFuNo(clientSettings.value("connection/mes/fuNo").toString());
+    writer.setWorkPos(clientSettings.value("connection/mes/workPos").toString());
+    writer.setToolPos(clientSettings.value("connection/mes/toolPos").toString());
+    writer.setProcessName(clientSettings.value("connection/mes/processName").toString());
+    writer.setApplication(clientSettings.value("connection/mes/application").toString());
+
+    writer.setStatNo(statNo);
+    if (processNo.isEmpty()) {
+        processNo = clientSettings.value("connection/mes/statNo").toString();
+    }
+    writer.setProcessNo(processNo);
+    writer.setTypeNo(typeNo);
+    writer.setTypeVar(typeVar);
+
+    QBuffer buffer;
+    buffer.open(QBuffer::ReadWrite);
+    if (writer.writeXmlData(&buffer)) {
+        updateSystemLog(tr("Request xml is generated!"));
+    }
+
+    // 2. send request file to mes server
+    buffer.seek(0);
+    if (!sendRequest(&buffer)) {
+        updateSystemLog("Cannot build communications with MES server");
+        return;
+    }
+
+    // write Request file to local for debug
+    if (!pathPartReceived.isEmpty() && !pathPartProcessed.isEmpty()) {
+        currentUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const QString fileName = QString("%1/Request_%2_%3.xml")
+                                     .arg(pathPartReceived, tcpSocket->peerAddress().toString(), currentUuid);
+
+        QFile file(fileName);
+        if (!file.open(QFile::WriteOnly | QFile::Text)) {
+            QMessageBox::warning(this,
+                                 QString("MES Connector Client"),
+                                 tr("Cannot write file %1:\n%2")
+                                     .arg(QDir::toNativeSeparators(fileName), file.errorString()));
+            return;
+        }
+        file.write(buffer.buffer());
+    }
+}
+
 void MESConnectorClient::updateSystemLog(const QString &msg)
 {
     if (!msg.isEmpty()) {
@@ -592,63 +634,13 @@ void MESConnectorClient::on_btn_validate_clicked() {
                             .arg(tcpSocket->peerPort()));
     }
 
-    // 1. generate XML request file with part id and system info
     partStatus = MESConnectorClient::PartRecevied;
     partIdentifier = ui->edit_partID->text();
-
-    XopconWriter writer(partIdentifier, XopconWriter::PartRecevied);
-    QSettings clientSettings("MesConnector", "Client");
-    writer.setLineNo(clientSettings.value("connection/mes/lineNo").toString());
-
-    if (!clientSettings.value("connection/mes/statNo").toString().isEmpty()) {
-        statNo = clientSettings.value("connection/mes/statNo").toString();
-    }
-
-    writer.setStatNo(statNo);
-    writer.setStatIdx(clientSettings.value("connection/mes/statIdx").toString());
-    writer.setFuNo(clientSettings.value("connection/mes/fuNo").toString());
-    writer.setWorkPos(clientSettings.value("connection/mes/workPos").toString());
-    writer.setToolPos(clientSettings.value("connection/mes/toolPos").toString());
-
-    if (!clientSettings.value("connection/mes/statNo").toString().isEmpty()) {
-        processNo = clientSettings.value("connection/mes/statNo").toString();
-    }
-    writer.setProcessNo(processNo);
-    writer.setProcessName(clientSettings.value("connection/mes/processName").toString());
-    writer.setApplication(clientSettings.value("connection/mes/application").toString());
-
-    QBuffer buffer;
-    buffer.open(QBuffer::ReadWrite);
-    if (writer.writeXmlData(&buffer)) {
-        updateSystemLog(tr("Request xml is generated!"));
-    }
-
-    // 2. send request file to mes server
-    buffer.seek(0);
-    if (!sendRequest(&buffer)) {
-        updateSystemLog("Cannot build communications with MES server");
-        return;
-    }
-
-    // write Request file to local for debug
-    if (!pathPartReceived.isEmpty() && !pathPartProcessed.isEmpty()) {
-        currentUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
-        const QString fileName = QString("%1/Request_%2_%3.xml")
-                                     .arg(pathPartReceived, tcpSocket->peerAddress().toString(), currentUuid);
-
-        QFile file(fileName);
-        if (!file.open(QFile::WriteOnly | QFile::Text)) {
-            QMessageBox::warning(this,
-                                 QString("MES Connector Client"),
-                                 tr("Cannot write file %1:\n%2")
-                                     .arg(QDir::toNativeSeparators(fileName), file.errorString()));
-            return;
-        }
-        file.write(buffer.buffer());
-    }
+    generateRequest(partIdentifier, statNo);
 
     // udpate UI
     ui->label_status_partvalidation->setText(tr("ID:%1 is recevied").arg(partIdentifier));
+
     ui->edit_partID->setText("");
     ui->btn_validate->setDisabled(true);
     ui->combo_partList->clear();

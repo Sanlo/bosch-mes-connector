@@ -65,10 +65,10 @@ private:
     EventType partStatus;
     QString currentUuid;
     QString partIdentifier;
-    QString statNo = "680";
-    QString processNo = "38213680";
-    QString typeNo = "0452B37080";
-    QString typeVar = "00";
+    QString statNo{"620"};
+    QString processNo;
+    QString typeNo{"00"};
+    QString typeVar{"00"};
     QString receivedDateTime;
     QList<Norminal> nornimalArray;
 
@@ -90,5 +90,6 @@ private:
     void updateSystemLog(const QString &msg);
     void sendMessage(QAnyStringView msg = nullptr);
     bool sendRequest(QIODevice *buffer);
+    void generateRequest(const QString &partId, const QString &statNo);
 };
 #endif // MESCONNECTORCLIENT_H
