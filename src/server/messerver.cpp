@@ -14,8 +14,10 @@ MesServer::MesServer(QWidget *parent)
 {
     ui->setupUi(this);
 
-    PATH_PART_PROCESSED = QString("%1/Documents/GitHub/bosch-mes-connector/BoschXML/partProcessed").arg(QDir::homePath());
-    PATH_PART_RECEVIED = QString("%1/Documents/GitHub/bosch-mes-connector/BoschXML/partRecevied").arg(QDir::homePath());
+    PATH_PART_PROCESSED = QString("%1/Documents/GitHub/bosch-mes-connector/packaging/BoschXML/partProcessed")
+                              .arg(QDir::homePath());
+    PATH_PART_RECEVIED = QString("%1/Documents/GitHub/bosch-mes-connector/packaging/BoschXML/partRecevied")
+                             .arg(QDir::homePath());
     qDebug() << PATH_PART_PROCESSED;
     qDebug() << PATH_PART_RECEVIED;
 }
@@ -111,7 +113,8 @@ void MesServer::readSocket()
     updateSystemLog(QString("Client send a xml file. Size: %1.").arg(bufferSize));
 
     // save buffer to local file for debug
-    QString pathRequest = QString("%1/Documents/GitHub/bosch-mes-connector/BoschXML/serverData").arg(QDir::homePath());
+    QString pathRequest = QString("%1/Documents/GitHub/bosch-mes-connector/packaging/BoschXML/serverData")
+                              .arg(QDir::homePath());
     const QString fileName = QString("%1/Request_%2_%3.xml")
                                  .arg(pathRequest,
                                       clientSocket->peerAddress().toString(),

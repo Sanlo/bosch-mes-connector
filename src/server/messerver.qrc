@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>img/boschLogo.png</file>
         <file>img/boschLogo3.png</file>
     </qresource>
 </RCC>
