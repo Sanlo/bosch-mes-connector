@@ -65,7 +65,7 @@ private:
     EventType partStatus;
     QString currentUuid;
     QString partIdentifier;
-    QString statNo{"620"};
+    QString statNo;
     QString processNo;
     QString typeNo{"00"};
     QString typeVar{"00"};

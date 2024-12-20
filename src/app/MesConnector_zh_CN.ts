@@ -15,9 +15,10 @@
     </message>
     <message>
         <location filename="mesconnectorclient.ui" line="14"/>
-        <location filename="mesconnectorclient.cpp" line="349"/>
-        <location filename="mesconnectorclient.cpp" line="509"/>
-        <location filename="mesconnectorclient.cpp" line="515"/>
+        <location filename="mesconnectorclient.cpp" line="306"/>
+        <location filename="mesconnectorclient.cpp" line="320"/>
+        <location filename="mesconnectorclient.cpp" line="475"/>
+        <location filename="mesconnectorclient.cpp" line="481"/>
         <source>MES Connector Client</source>
         <translation type="unfinished"></translation>
     </message>
@@ -110,7 +111,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">DataLoop 连接</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="157"/>
+        <location filename="mesconnectorclient.cpp" line="142"/>
         <source>Parse error in file %1:
 
 %2</source>
@@ -119,98 +120,135 @@ li.checked::marker { content: &quot;\2612&quot;; }
 %2</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="181"/>
         <source>Part ID:%1, Bosch MES server reply process ID:%2 isn&apos;t suitable for measurement here
 Do you still want to try measuring?</source>
-        <translation>零件ID： %1, Bosch MES 服务器回复工序号 ID:%2 不适合在当前站位测量。
+        <translation type="vanished">零件ID： %1, Bosch MES 服务器回复工序号 ID:%2 不适合在当前站位测量。
 是否依然尝试测量该零件？</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="193"/>
         <source>PartID: %1, partForStation: %1, typeNo: %2 typeVar: %3.
 Validate part and start Polyworks</source>
-        <translation>零件ID: %1, 当前站位验证: %1, 类型编号: %2 类型变量: %3.
+        <translation type="vanished">零件ID: %1, 当前站位验证: %1, 类型编号: %2 类型变量: %3.
 正在验证零件并开启PolyWorks软件...</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="280"/>
-        <location filename="mesconnectorclient.cpp" line="643"/>
+        <location filename="mesconnectorclient.cpp" line="590"/>
         <source>Cannot write file %1:
 %2</source>
         <translation>无法写入到文件 %1:
 %2</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="345"/>
+        <location filename="mesconnectorclient.cpp" line="302"/>
         <source>The connection is refused by the peer.
 Make sure the server is running, and check the ip and port settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="350"/>
+        <location filename="mesconnectorclient.cpp" line="153"/>
+        <source>Mes Server return error for request. Code:-1</source>
+        <translation>MES 服务器返回错误（代码：-1）</translation>
+    </message>
+    <message>
+        <location filename="mesconnectorclient.cpp" line="162"/>
+        <source>MES server error: no process number response</source>
+        <translation>MES 服务器错误： 回复报文中没有processNo</translation>
+    </message>
+    <message>
+        <location filename="mesconnectorclient.cpp" line="168"/>
+        <source>Part ID:%1, Bosch MES server reply process ID:%2 isn&apos;t suitable for measurement here</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mesconnectorclient.cpp" line="187"/>
+        <source>Server reply for PartID: %1: partForStation: %2, typeNo: %3, typeVar: %4.
+Validate part and start Polyworks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mesconnectorclient.cpp" line="203"/>
+        <source>Current part is passed station successful</source>
+        <translation>当前工件成功过站</translation>
+    </message>
+    <message>
+        <location filename="mesconnectorclient.cpp" line="307"/>
         <source>The following error occurred: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="358"/>
+        <location filename="mesconnectorclient.cpp" line="315"/>
         <source>ERROR: Code:%1.
 %2</source>
         <translation>错误: Code:%1.
 %2</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="383"/>
-        <location filename="mesconnectorclient.cpp" line="576"/>
+        <location filename="mesconnectorclient.cpp" line="320"/>
+        <source>Password</source>
+        <translation>密码</translation>
+    </message>
+    <message>
+        <location filename="mesconnectorclient.cpp" line="323"/>
+        <source>Incorrect password,cannot open settings dialog!</source>
+        <translation>不正确的密码，无法打开设置对话框！</translation>
+    </message>
+    <message>
+        <location filename="mesconnectorclient.cpp" line="347"/>
+        <location filename="mesconnectorclient.cpp" line="612"/>
         <source>The IP address and port must be filled before any communication with Bosch MES server</source>
         <translation>在开启使用前，请先在设置中填写Bosch MES 服务器的IP地址和端口。</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="391"/>
+        <location filename="mesconnectorclient.cpp" line="355"/>
         <source>The DataLoop API entry and token must be filled.</source>
         <translation>开始工作前，DataLoop API入口地址和令牌必须填写。</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="448"/>
+        <location filename="mesconnectorclient.cpp" line="413"/>
         <source>Waiting for user input.
 Please scan part ID with BAR scanner</source>
         <translation>等待用户输入。
 使用扫码枪对待测零件扫码。</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="509"/>
+        <location filename="mesconnectorclient.cpp" line="475"/>
         <source>Server not connected!</source>
         <translation>无法链接Bosch MES 服务器</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="515"/>
+        <location filename="mesconnectorclient.cpp" line="481"/>
         <source>Socket Error!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="588"/>
-        <source>ERROR: Can&apos;t build connection with Bosch MES Server</source>
-        <translation type="unfinished"></translation>
+        <location filename="mesconnectorclient.cpp" line="564"/>
+        <source>Error: request xml file generate error!</source>
+        <translation>错误： 请求xml报文生成错误</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="623"/>
-        <source>Request xml is generated!</source>
-        <translation type="unfinished"></translation>
+        <location filename="mesconnectorclient.cpp" line="759"/>
+        <source>Auto data transmit is disabled.</source>
+        <translation>自动数据传输被关闭</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="651"/>
+        <location filename="mesconnectorclient.cpp" line="762"/>
+        <source>Auto data transmit function is start. The new inspection data will be auto uploaded to Bosch MES server</source>
+        <translation>自动数据传输功能已开启，新的测量数据将会自动上传至 Bosch MES 服务器。</translation>
+    </message>
+    <message>
+        <location filename="mesconnectorclient.cpp" line="646"/>
         <source>ID:%1 is recevied</source>
         <translation>零件ID:%1 已收到</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="672"/>
+        <location filename="mesconnectorclient.cpp" line="670"/>
         <source>Part identifier and type number is empty</source>
         <translation>零件ID和类型编号不能为空</translation>
     </message>
     <message>
-        <location filename="mesconnectorclient.cpp" line="753"/>
         <source>Auto Transmit will auto upload measurement result to BOSCH MES Server.
 Are you sure to do that?</source>
-        <translation>开启自动传输模式会自动将最新的测量结果上传到Bosch MES 服务器.
+        <translation type="vanished">开启自动传输模式会自动将最新的测量结果上传到Bosch MES 服务器.
 是否确定开启？</translation>
     </message>
 </context>
@@ -345,7 +383,7 @@ Are you sure to do that?</source>
     <message>
         <location filename="settings.ui" line="685"/>
         <source>Functional No.</source>
-        <translation type="unfinished"></translation>
+        <translation>功能编号</translation>
     </message>
     <message>
         <location filename="settings.ui" line="736"/>

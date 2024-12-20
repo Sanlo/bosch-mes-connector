@@ -15,6 +15,11 @@
 
 using namespace Qt::StringLiterals;
 
+namespace {
+const QString STATNO{"620"};
+const QString PWD{"abc"};
+} // namespace
+
 /*
     MES Connector Client Work Procedure:
 1: Setting
@@ -140,18 +145,34 @@ void MESConnectorClient::onServerReply()
         return;
     }
 
-    // Retrive response data from server reply
-    if (0 != xopconReader.returnCode()) {
-        updateSystemLog(QString("Mes Server return error for request. Code:-1"));
-        return;
-    }
-
     // 5. respond to the result
     switch (partStatus) {
     case MESConnectorClient::PartRecevied:
+        // retrive response data from server reply
+        if (0 != xopconReader.returnCode()) {
+            updateSystemLog(tr("Mes Server return error for request. Code:-1"));
+            break;
+        }
+
         // post process for part recevied
         processNo = xopconReader.nextProcessNo();
-        if (processNo.isEmpty() || statNo != processNo.right(3)) {
+
+        // catch mes server error
+        if (processNo.isEmpty()) {
+            updateSystemLog(tr("MES server error: no process number response"));
+            break;
+        }
+
+        // validate the process number
+        if (!xopconReader.isValidProcess(processNo)) {
+            QString content = tr("Part ID:%1, Bosch MES server reply process ID:%2 isn't suitable for measurement here")
+                                  .arg(partIdentifier, processNo);
+            QMessageBox::warning(this, QString("MES Connector Client"), content);
+            break;
+        }
+
+        // check if need to re-request use the statNo which returned by MES server
+        if (statNo != processNo.right(3)) {
             statNo = processNo.right(3);
             generateRequest(partIdentifier, statNo);
             break;
@@ -161,13 +182,6 @@ void MESConnectorClient::onServerReply()
         typeVar = xopconReader.typeVar();
         nornimalArray = xopconReader.norminalArray();
         receivedDateTime = xopconReader.timeStamp();
-
-        if (!xopconReader.isValidProcess(processNo)) {
-            QString content = tr("Part ID:%1, Bosch MES server reply process ID:%2 isn't suitable for measurement here")
-                                  .arg(partIdentifier, processNo);
-            QMessageBox::warning(this, QString("MES Connector Client"), content);
-            break;
-        }
 
         updateSystemLog(
             tr("Server reply for PartID: %1: partForStation: %2, typeNo: %3, typeVar: %4.\nValidate part " "and start " "Polyworks")
@@ -181,7 +195,13 @@ void MESConnectorClient::onServerReply()
 
         int item = ui->combo_partList->currentIndex();
         ui->combo_partList->setItemIcon(item, QIcon(":/img/Bosch-logo.png"));
-        updateSystemLog(QString("server replied for part processed.(Code:%1)").arg(xopconReader.returnCode()));
+
+        // Retrive response data from server reply
+        if (0 != xopconReader.returnCode()) {
+            updateSystemLog(QString("Current part cannot pass station, BOSCH server return: -1"));
+        } else {
+            updateSystemLog(tr("Current part is passed station successful"));
+        }
         break;
     }
 }
@@ -297,6 +317,13 @@ void MESConnectorClient::displayPolyworksError(int errorCode, const QString &err
 }
 
 void MESConnectorClient::on_btn_settings_clicked() {
+    QString pwd = QInputDialog::getText(this, tr("MES Connector Client"), tr("Password"), QLineEdit::Password);
+
+    if (PWD != pwd) {
+        updateSystemLog(tr("Incorrect password,cannot open settings dialog!"));
+        return;
+    }
+
     Settings settingsDlg(this);
     settingsDlg.setWindowModality(Qt::WindowModal);
 
@@ -384,6 +411,7 @@ void MESConnectorClient::updateUI()
     ui->edit_partID->setFocus();
     ui->tab_inspection->setCurrentIndex(0);
     ui->label_status_partvalidation->setText(tr("Waiting for user input.\nPlease scan part ID with BAR scanner"));
+    ui->checkAutoTransmit->setCheckState(Qt::Checked);
 }
 
 void MESConnectorClient::startInspection()
@@ -532,8 +560,8 @@ void MESConnectorClient::generateRequest(
 
     QBuffer buffer;
     buffer.open(QBuffer::ReadWrite);
-    if (writer.writeXmlData(&buffer)) {
-        updateSystemLog(tr("Request xml is generated!"));
+    if (!writer.writeXmlData(&buffer)) {
+        updateSystemLog(tr("Error: request xml file generate error!"));
     }
 
     // 2. send request file to mes server
@@ -604,6 +632,14 @@ void MESConnectorClient::on_btn_validate_clicked() {
 
     partStatus = MESConnectorClient::PartRecevied;
     partIdentifier = ui->edit_partID->text();
+
+    QSettings clientSettings("MesConnector", "Client");
+    if (!clientSettings.value("connection/mes/statNo").toString().isEmpty()) {
+        qDebug() << clientSettings.value("connection/mes/statNo").toString();
+        statNo = clientSettings.value("connection/mes/statNo").toString();
+    } else {
+        statNo = STATNO;
+    }
     generateRequest(partIdentifier, statNo);
 
     // udpate UI
@@ -716,21 +752,15 @@ void MESConnectorClient::on_checkAutoTransmit_checkStateChanged(const Qt::CheckS
     ui->btn_transmit->setDisabled(isAutoTransmit);
 
     if (Qt::Unchecked == arg1) {
-        pollingThread->quit();
-        pollingThread->wait();
+        if (pollingThread) {
+            pollingThread->quit();
+            pollingThread->wait();
+        }
+        updateSystemLog(tr("Auto data transmit is disabled."));
         return;
     }
-    auto ok = QMessageBox::question(this,
-                                    QString("MES Connector Client"),
-                                    tr("Auto Transmit will auto upload measurement result to BOSCH "
-                                       "MES Server.\nAre you sure to do that?"),
-                                    QMessageBox::Ok | QMessageBox::Cancel,
-                                    QMessageBox::Ok);
-    if (QMessageBox::Ok != ok) {
-        ui->checkAutoTransmit->setCheckState(Qt::Unchecked);
-        return;
-    }    
-
+    updateSystemLog(tr(
+        "Auto data transmit function is start. The new inspection data will be auto uploaded to " "Bosch MES server"));
 
     if (isAutoTransmit) {
         // Polling Thread
