@@ -211,6 +211,7 @@ void XopconWriter::writeBodyStructArray()
     xml.writeAttribute("loLim", QString::number(xmlNorminal.at(13).lTol));
     xml.writeAttribute("upLim", QString::number(xmlNorminal.at(13).uTol));
     xml.writeAttribute("checkType", "5");
+    xmlResult = (res == 1) ? xmlResult : res;
 
     xml.writeEndElement();
     xml.writeStartElement("item");
@@ -222,6 +223,7 @@ void XopconWriter::writeBodyStructArray()
     xml.writeAttribute("loLim", QString::number(xmlNorminal.at(14).lTol));
     xml.writeAttribute("upLim", QString::number(xmlNorminal.at(14).uTol));
     xml.writeAttribute("checkType", "5");
+    xmlResult = (res == 1) ? xmlResult : res;
 
     xml.writeEndElement();
 
